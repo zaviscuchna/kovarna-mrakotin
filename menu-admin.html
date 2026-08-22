@@ -1,0 +1,2501 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin · Na Kovárně Mrákotín</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --teal: #4CAAA8;
+  --teal-light: #7ECFCE;
+  --teal-dark: #2D7E7D;
+  --teal-pale: #EAF6F5;
+  --teal-mid: #C8ECEA;
+  --cream: #F6F2EB;
+  --cream-dark: #EDE6D8;
+  --text: #1C1510;
+  --text-mid: #4A3828;
+  --text-muted: #7A6858;
+  --white: #FDFAF6;
+  --danger: #c53b3b;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
+  --shadow: 0 4px 24px rgba(44,126,125,.08);
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+html, body { font-size: 16px; }
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  background: var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea, select { font-family: inherit; font-size: 16px; color: var(--text); }
+a { color: var(--teal-dark); }
+
+/* ─── PIN ─────────────────────────────── */
+#pinScreen {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--teal-pale) 0%, var(--cream) 100%);
+  z-index: 1000; padding: 20px;
+}
+.pin-box {
+  background: var(--white); border-radius: 20px;
+  padding: 44px 36px; box-shadow: var(--shadow);
+  max-width: 400px; width: 100%; text-align: center;
+}
+.pin-stamp { width: 72px; height: 72px; margin: 0 auto 20px; }
+.pin-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 500; color: var(--text); margin-bottom: 6px; }
+.pin-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; }
+.pin-input {
+  width: 100%; padding: 18px;
+  font-size: 28px; letter-spacing: .6em; text-align: center;
+  border: 2px solid var(--cream-dark); border-radius: 12px;
+  outline: none; font-weight: 600; color: var(--teal-dark); background: var(--cream);
+  transition: border-color .2s;
+}
+.pin-input:focus { border-color: var(--teal); }
+.pin-input.error { border-color: var(--danger); animation: shake .35s; }
+@keyframes shake { 0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+.pin-error { margin-top: 10px; font-size: 13px; color: var(--danger); min-height: 18px; }
+.pin-hint { margin-top: 24px; font-size: 12px; color: var(--text-muted); }
+
+/* ─── App layout ───────────────────────── */
+#adminApp { display: none; min-height: 100vh; }
+#adminApp.unlocked { display: flex; align-items: stretch; min-height: 100vh; }
+
+aside.sidebar {
+  background: var(--text);
+  color: var(--white);
+  padding: 24px 0;
+  width: 240px; flex-shrink: 0;
+  position: sticky; top: 0;
+  height: 100vh; overflow-y: auto;
+  display: flex; flex-direction: column;
+}
+.sb-brand {
+  padding: 0 22px 24px;
+  border-bottom: 1px solid rgba(253,250,246,.08);
+  display: flex; align-items: center; gap: 12px;
+}
+.sb-brand svg { width: 36px; height: 36px; flex-shrink: 0; }
+.sb-brand-text {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px; font-weight: 500; line-height: 1.2;
+}
+.sb-brand-text small {
+  display: block; font-family: 'DM Sans', sans-serif;
+  font-size: 10px; font-weight: 400;
+  color: rgba(253,250,246,.4);
+  letter-spacing: .14em; text-transform: uppercase;
+  margin-top: 3px;
+}
+.sb-tabs { padding: 14px 0; flex: 1; }
+.sb-tab {
+  width: 100%; display: flex; align-items: center; gap: 14px;
+  padding: 12px 22px; font-size: 14px;
+  color: rgba(253,250,246,.6);
+  text-align: left; font-weight: 500;
+  transition: background .2s, color .2s;
+  position: relative; cursor: pointer;
+}
+.sb-tab:hover { color: var(--white); background: rgba(253,250,246,.04); }
+.sb-tab.active { color: var(--white); background: rgba(76,170,168,.12); }
+.sb-tab.active::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--teal);
+}
+.sb-tab-icon { display: flex; width: 18px; height: 18px; }
+.sb-tab-num { font-size: 11px; color: rgba(253,250,246,.3); font-weight: 600; margin-left: auto; }
+.sb-tab.priority { color: var(--teal-light); }
+.sb-tab.priority .sb-tab-num { color: var(--teal-light); }
+
+.sb-foot {
+  padding: 16px 22px; font-size: 11px;
+  color: rgba(253,250,246,.3);
+  border-top: 1px solid rgba(253,250,246,.08); line-height: 1.5;
+}
+.sb-foot button { display: block; margin-top: 8px; font-size: 12px; color: rgba(253,250,246,.5); text-decoration: underline; padding: 0; }
+.sb-foot button:hover { color: var(--white); }
+
+main.content { padding: 36px 44px; max-width: 1080px; flex: 1 1 auto; min-width: 0; width: 100%; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; animation: fadeIn .3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+.page-head {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 28px; flex-wrap: wrap; gap: 16px;
+}
+.page-head h1 { font-family: 'Playfair Display', serif; font-size: 30px; font-weight: 500; color: var(--text); letter-spacing: -0.01em; }
+.page-head p { font-size: 13px; color: var(--text-muted); margin-top: 4px; max-width: 540px; line-height: 1.6; }
+
+/* ─── Cards & forms ───────────────── */
+.card {
+  background: var(--white); border-radius: 14px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--cream-dark);
+  margin-bottom: 22px; overflow: hidden;
+}
+.card-head {
+  padding: 18px 22px; border-bottom: 1px solid var(--cream-dark);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.card-head h2 { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 500; color: var(--text); }
+.card-head .desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.card-body { padding: 22px; }
+
+.row { display: grid; gap: 16px; }
+.row-2 { grid-template-columns: 1fr 1fr; }
+.row-3 { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 720px) { .row-2, .row-3 { grid-template-columns: 1fr; } }
+
+label.field { display: block; }
+label.field > span {
+  display: block;
+  font-size: 11px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+.input, .textarea, .select {
+  width: 100%; padding: 12px 14px;
+  border: 1.5px solid var(--cream-dark);
+  background: var(--white); border-radius: 10px;
+  outline: none; transition: border-color .2s;
+  color: var(--text);
+}
+.input:focus, .textarea:focus, .select:focus { border-color: var(--teal); }
+.textarea { min-height: 100px; resize: vertical; line-height: 1.55; }
+.input--small { padding: 9px 12px; font-size: 14px; }
+
+/* ─── Buttons ─────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 18px; font-size: 14px; font-weight: 600;
+  border-radius: 9px; border: 1px solid transparent;
+  transition: background .2s, transform .15s, border-color .2s;
+  white-space: nowrap;
+}
+.btn--primary { background: var(--teal); color: var(--white); }
+.btn--primary:hover { background: var(--teal-dark); transform: translateY(-1px); }
+.btn--ghost { background: transparent; color: var(--text-mid); border-color: var(--cream-dark); }
+.btn--ghost:hover { border-color: var(--teal); color: var(--teal-dark); }
+.btn--danger { background: transparent; color: var(--danger); border-color: rgba(197,59,59,.25); }
+.btn--danger:hover { background: rgba(197,59,59,.06); }
+.btn--small { padding: 7px 12px; font-size: 12.5px; }
+.btn--big { padding: 16px 28px; font-size: 15px; }
+.btn:disabled { opacity: .45; pointer-events: none; }
+
+/* ─── Dnešní menu: builder ─────────── */
+.mb-wrap { display: flex; flex-direction: column; gap: 14px; }
+.mb-section {
+  background: var(--cream); border-radius: 12px;
+  border: 1px solid var(--cream-dark);
+  overflow: visible;
+}
+.mb-section-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--cream-dark);
+}
+.mb-section-title {
+  flex: 1; font-family: 'Playfair Display', serif;
+  font-size: 17px; font-weight: 500; color: var(--text);
+  background: transparent; border: 0; outline: none;
+  padding: 6px 0;
+  border-bottom: 1px dashed transparent;
+  min-width: 0;
+}
+.mb-section-title:focus,
+.mb-section-title:hover { border-bottom-color: var(--teal-mid); }
+.mb-section-price {
+  width: 110px; padding: 7px 10px;
+  border: 1px solid var(--cream-dark); border-radius: 7px;
+  font-size: 13px; font-weight: 600; color: var(--teal-dark);
+  outline: none; text-align: right; background: var(--white);
+}
+.mb-section-price:focus { border-color: var(--teal); }
+.mb-section-price::placeholder { color: var(--text-muted); font-weight: 400; }
+.mb-section-rm { padding: 6px 10px; color: var(--text-muted); border-radius: 6px; font-size: 14px; }
+.mb-section-rm:hover { color: var(--danger); background: rgba(197,59,59,.06); }
+
+.mb-items { padding: 12px 16px; display: flex; flex-direction: column; gap: 7px; }
+
+.mb-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 100px auto;
+  gap: 8px; align-items: center;
+}
+.mb-item-weight,
+.mb-item-price {
+  padding: 9px 10px; font-size: 13px;
+  border: 1px solid var(--cream-dark); border-radius: 7px;
+  outline: none; background: var(--white);
+  text-align: center; color: var(--text-mid);
+}
+.mb-item-price { text-align: right; font-weight: 600; color: var(--teal-dark); }
+.mb-item-weight:focus,
+.mb-item-price:focus { border-color: var(--teal); }
+
+.mb-name-wrap { position: relative; min-width: 0; }
+.mb-item-name {
+  width: 100%; padding: 9px 12px; font-size: 14px;
+  border: 1.5px solid var(--cream-dark); border-radius: 7px;
+  outline: none; background: var(--white);
+  transition: border-color .15s, background .15s;
+}
+.mb-item-name:focus { border-color: var(--teal); }
+.mb-item-name.has-dish { background: var(--teal-pale); border-color: var(--teal-mid); }
+.mb-item-name.has-dish + .mb-item-meta { display: flex; }
+.mb-item-meta {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  display: none; gap: 6px; align-items: center;
+  font-size: 10.5px; color: var(--text-muted);
+  pointer-events: none; font-weight: 600;
+  letter-spacing: .04em;
+}
+.mb-item-allergens-badge {
+  background: var(--white); border: 1px solid var(--teal-mid);
+  border-radius: 999px; padding: 1px 8px;
+  color: var(--teal-dark);
+}
+
+.mb-item-rm { padding: 7px 10px; color: var(--text-muted); border-radius: 6px; font-size: 14px; }
+.mb-item-rm:hover { color: var(--danger); background: rgba(197,59,59,.06); }
+
+@media (max-width: 720px) {
+  .mb-item { grid-template-columns: 70px 1fr auto; grid-template-rows: auto auto; }
+  .mb-item .mb-name-wrap { grid-column: 1 / -1; grid-row: 1; }
+  .mb-item .mb-item-weight { grid-column: 1; grid-row: 2; }
+  .mb-item .mb-item-price  { grid-column: 2; grid-row: 2; }
+  .mb-item .mb-item-rm     { grid-column: 3; grid-row: 2; }
+}
+
+/* Autocomplete dropdown */
+.mb-autocomplete {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--white); border: 1px solid var(--cream-dark);
+  border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.10);
+  z-index: 100; max-height: 320px; overflow-y: auto;
+  display: none;
+}
+.mb-autocomplete.open { display: block; }
+.mb-ac-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; cursor: pointer; font-size: 13.5px;
+  border-bottom: 1px solid var(--cream);
+}
+.mb-ac-item:last-child { border-bottom: 0; }
+.mb-ac-item.active,
+.mb-ac-item:hover { background: var(--teal-pale); }
+.mb-ac-name { flex: 1; color: var(--text); font-weight: 500; min-width: 0; }
+.mb-ac-name small { display: block; color: var(--text-muted); font-weight: 400; font-size: 12px; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; }
+.mb-ac-allergens {
+  font-size: 11px; color: var(--text-muted);
+  background: var(--cream); padding: 2px 7px; border-radius: 4px;
+  font-weight: 600; white-space: nowrap;
+}
+.mb-ac-price { color: var(--teal-dark); font-weight: 600; font-size: 13px; min-width: 60px; text-align: right; }
+.mb-ac-create {
+  color: var(--teal-dark); font-weight: 600; justify-content: center;
+  background: var(--teal-pale);
+  border-top: 1px solid var(--cream-dark);
+  position: sticky; bottom: 0;
+}
+.mb-ac-empty { padding: 14px; color: var(--text-muted); font-size: 13px; text-align: center; }
+
+.mb-add-section {
+  border: 2px dashed var(--teal-mid);
+  background: transparent; padding: 16px;
+  border-radius: 12px; color: var(--teal-dark);
+  font-weight: 600; font-size: 13.5px;
+  transition: background .2s, border-color .2s;
+  width: 100%;
+}
+.mb-add-section:hover { background: var(--teal-pale); border-color: var(--teal); }
+
+.mb-add-item {
+  margin-top: 4px; align-self: flex-start;
+  font-size: 13px; color: var(--teal-dark); font-weight: 600;
+  padding: 6px 12px; border-radius: 6px;
+}
+.mb-add-item:hover { background: var(--teal-mid); }
+
+/* ─── Database manager ─── */
+.db-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.db-table th {
+  text-align: left; padding: 10px 8px;
+  background: var(--cream); color: var(--text-muted);
+  font-weight: 600; font-size: 10.5px;
+  text-transform: uppercase; letter-spacing: .5px;
+  border-bottom: 2px solid var(--cream-dark);
+  position: sticky; top: 0;
+}
+.db-table td {
+  padding: 10px 8px; border-bottom: 1px solid var(--cream-dark);
+  vertical-align: top;
+}
+.db-table td.db-name { font-weight: 500; color: var(--text); }
+.db-table td.db-name small { display: block; color: var(--text-muted); font-weight: 400; font-size: 11.5px; margin-top: 2px; }
+.db-table td.db-price { text-align: right; white-space: nowrap; color: var(--teal-dark); font-weight: 600; }
+.db-cat-pill {
+  display: inline-block; padding: 2px 8px;
+  background: var(--teal-pale); color: var(--teal-dark);
+  border-radius: 999px; font-size: 10.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .04em;
+}
+.db-search {
+  margin-bottom: 14px;
+  padding: 10px 14px; border: 1.5px solid var(--cream-dark);
+  border-radius: 8px; width: 100%; max-width: 360px;
+  outline: none; font-size: 14px;
+  background: var(--white);
+}
+.db-search:focus { border-color: var(--teal); }
+.db-actions { display: flex; gap: 4px; justify-content: flex-end; }
+.db-action-btn {
+  padding: 5px 9px; font-size: 12px;
+  border-radius: 5px;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+}
+.db-action-btn:hover { color: var(--teal-dark); border-color: var(--cream-dark); background: var(--cream); }
+.db-action-btn.danger:hover { color: var(--danger); border-color: rgba(197,59,59,.2); background: rgba(197,59,59,.06); }
+
+.card.collapsed .card-body { display: none; }
+.card-toggle {
+  cursor: pointer; user-select: none;
+}
+.card-toggle .chev { transition: transform .25s var(--ease); display: inline-block; }
+.card.collapsed .card-toggle .chev { transform: rotate(-90deg); }
+
+/* ─── Modal ─── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(28, 21, 16, .55);
+  display: none; align-items: center; justify-content: center;
+  z-index: 200; padding: 20px;
+  animation: fadeIn .2s;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--white); border-radius: 14px;
+  max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 50px rgba(0,0,0,.25);
+  animation: slideUp .25s var(--ease);
+}
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-head {
+  padding: 18px 22px; border-bottom: 1px solid var(--cream-dark);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-head h3 { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 500; }
+.modal-close { padding: 6px 10px; font-size: 18px; color: var(--text-muted); }
+.modal-close:hover { color: var(--danger); }
+.modal-body { padding: 22px; }
+.modal-foot { padding: 16px 22px; border-top: 1px solid var(--cream-dark); display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.allergen-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px; margin-top: 8px;
+}
+.allergen-chip {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 7px;
+  border: 1.5px solid var(--cream-dark);
+  background: var(--white); cursor: pointer;
+  font-size: 12.5px; color: var(--text-mid);
+  transition: border-color .15s, background .15s, color .15s;
+}
+.allergen-chip:hover { border-color: var(--teal-mid); }
+.allergen-chip.checked {
+  background: var(--teal-pale); border-color: var(--teal);
+  color: var(--teal-dark); font-weight: 600;
+}
+.allergen-chip input { display: none; }
+.allergen-chip-num {
+  background: var(--cream); color: var(--text-muted);
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 600; font-size: 11px;
+  flex-shrink: 0;
+}
+.allergen-chip.checked .allergen-chip-num {
+  background: var(--teal); color: var(--white);
+}
+
+/* ─── Print area ─── */
+#printArea { display: none; }
+@media print {
+  body { background: #fff !important; }
+  body > *:not(#printArea) { display: none !important; }
+  #printArea {
+    display: block !important;
+    position: static;
+    width: 100%; padding: 0;
+    color: #1a1a1a; background: #fff;
+    font-family: 'Playfair Display', Georgia, serif;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  #printArea .print-section { break-inside: avoid; page-break-inside: avoid; }
+  @page { size: A4; margin: 10mm 14mm; }
+}
+
+/* ─── Listek editor ─────────────────── */
+.listek-tab-bar {
+  display: flex; gap: 4px; flex-wrap: wrap;
+  margin-bottom: 18px;
+  background: var(--cream); padding: 5px; border-radius: 10px;
+  border: 1px solid var(--cream-dark);
+}
+.listek-tab-btn {
+  padding: 9px 16px; font-size: 13px; font-weight: 600;
+  color: var(--text-muted); border-radius: 7px;
+  letter-spacing: .04em;
+}
+.listek-tab-btn.active { background: var(--teal); color: var(--white); }
+
+.li-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 100px auto;
+  gap: 8px; align-items: center;
+  margin-bottom: 7px;
+}
+.li-row input { width: 100%; padding: 9px 12px; border: 1px solid var(--cream-dark); border-radius: 7px; font-size: 14px; outline: none; }
+.li-row input:focus { border-color: var(--teal); }
+.li-row.li-row-full { grid-template-columns: 76px 1.2fr 1fr 90px 76px auto; }
+@media (max-width: 720px) {
+  .li-row { grid-template-columns: 1fr 80px auto; grid-template-rows: auto auto; }
+  .li-row .li-name { grid-column: 1 / -1; }
+  .li-row .li-desc { grid-column: 1; grid-row: 2; }
+  .li-row .li-price { grid-column: 2; grid-row: 2; }
+  .li-row .li-rm { grid-column: 3; grid-row: 2; }
+  .li-row.li-row-full { grid-template-columns: 76px 1fr 90px; grid-template-rows: auto auto auto; }
+  .li-row.li-row-full .li-weight { grid-column: 1; grid-row: 1; }
+  .li-row.li-row-full .li-name { grid-column: 2; grid-row: 1; }
+  .li-row.li-row-full .li-desc { grid-column: 1 / -1; grid-row: 2; }
+  .li-row.li-row-full .li-allerg { grid-column: 1 / 3; grid-row: 3; }
+  .li-row.li-row-full .li-price { grid-column: 3; grid-row: 3; }
+  .li-row.li-row-full .li-rm { grid-column: 3; grid-row: 1; justify-self: end; }
+}
+
+/* ─── Hours editor ────────────────── */
+.hours-rows { display: flex; flex-direction: column; gap: 8px; }
+.hours-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 8px; align-items: center;
+}
+.hours-row input { padding: 9px 12px; border: 1px solid var(--cream-dark); border-radius: 8px; font-size: 14px; outline: none; }
+.hours-row input:focus { border-color: var(--teal); }
+
+/* ─── Akce cards editor ───────────── */
+.akce-edit-card {
+  background: var(--cream);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px solid var(--cream-dark);
+}
+.akce-edit-card .row-3 { gap: 10px; }
+.akce-edit-card label { display: block; }
+.akce-edit-card label > span { font-size: 10px; }
+.akce-edit-card input, .akce-edit-card textarea { font-size: 13.5px; padding: 8px 10px; }
+.akce-edit-card textarea { min-height: 70px; }
+.akce-icon-input { font-size: 22px !important; text-align: center; padding: 8px !important; }
+
+/* ─── Gallery editor ──────────────── */
+.gal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+}
+.gal-tile {
+  background: var(--white);
+  border: 1px solid var(--cream-dark);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+}
+.gal-tile img {
+  width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block;
+  background: var(--teal-pale);
+}
+.gal-tile .gal-meta { padding: 8px 10px; }
+.gal-tile input { width: 100%; padding: 6px 8px; font-size: 12px; border: 1px solid var(--cream-dark); border-radius: 5px; outline: none; }
+.gal-tile input:focus { border-color: var(--teal); }
+.gal-tile .gal-actions { display: flex; gap: 4px; margin-top: 6px; justify-content: space-between; }
+.gal-tile .gal-actions button { padding: 4px 8px; font-size: 11px; border-radius: 4px; }
+.gal-add {
+  border: 2px dashed var(--teal-mid);
+  border-radius: 10px;
+  background: var(--teal-pale);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  aspect-ratio: 4/3.4;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+  color: var(--teal-dark);
+  font-size: 13px; font-weight: 600;
+}
+.gal-add:hover { border-color: var(--teal); background: var(--teal-mid); }
+.gal-add svg { width: 32px; height: 32px; margin-bottom: 8px; }
+.gal-add input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+/* ─── Toast ────────────────── */
+.toast-wrap {
+  position: fixed; bottom: 24px; right: 24px; z-index: 300;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  background: var(--text); color: var(--white);
+  padding: 14px 20px; border-radius: 10px;
+  font-size: 13.5px; font-weight: 500;
+  box-shadow: 0 10px 32px rgba(0,0,0,.2);
+  display: flex; align-items: center; gap: 10px;
+  animation: slideIn .25s var(--ease); max-width: 380px;
+}
+.toast.success { background: var(--teal-dark); }
+.toast.error { background: var(--danger); }
+@keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ─── Mobile drawer ───────────────── */
+@media (max-width: 880px) {
+  aside.sidebar {
+    position: fixed; left: 0; top: 0;
+    width: 260px; z-index: 50; height: 100vh;
+    transform: translateX(-100%); transition: transform .3s var(--ease);
+    box-shadow: 4px 0 30px rgba(0,0,0,.15);
+  }
+  aside.sidebar.open { transform: none; }
+  .mobile-bar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 12px;
+    background: var(--white);
+    padding: 12px 16px; border-bottom: 1px solid var(--cream-dark);
+  }
+  .mobile-bar button { padding: 6px; }
+  main.content { padding: 22px 16px; }
+  .page-head h1 { font-size: 22px; }
+  .scrim { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 40; display: none; }
+  .scrim.open { display: block; }
+}
+@media (min-width: 881px) {
+  .mobile-bar { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ PIN SCREEN ═══ -->
+<div id="pinScreen">
+  <div class="pin-box">
+    <svg class="pin-stamp" viewBox="0 0 80 80" fill="none">
+      <circle cx="40" cy="40" r="36" stroke="#4CAAA8" stroke-width="1.5"/>
+      <circle cx="40" cy="40" r="30" stroke="#4CAAA8" stroke-width="0.75" stroke-dasharray="2 3"/>
+      <text font-family="Playfair Display, serif" font-size="13" fill="#2D7E7D" text-anchor="middle" x="40" y="46" font-style="italic">1793</text>
+    </svg>
+    <div class="pin-title">Správa webu</div>
+    <div class="pin-sub">Restaurace Na Kovárně Mrákotín</div>
+    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+           class="pin-input" id="pinInput" placeholder="••••" autocomplete="off">
+    <div class="pin-error" id="pinError"></div>
+    <div class="pin-hint">Zadejte 4-místný PIN</div>
+  </div>
+</div>
+
+<!-- ═══ ADMIN APP ═══ -->
+<div id="adminApp">
+  <div class="scrim" id="scrim"></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-brand">
+      <svg viewBox="0 0 80 80" fill="none">
+        <circle cx="40" cy="40" r="36" stroke="#7ECFCE" stroke-width="1.5"/>
+        <text font-family="Playfair Display, serif" font-size="13" fill="#7ECFCE" text-anchor="middle" x="40" y="46" font-style="italic">1793</text>
+      </svg>
+      <div class="sb-brand-text">
+        Na Kovárně<br>Mrákotín
+        <small>Správa webu</small>
+      </div>
+    </div>
+
+    <nav class="sb-tabs" id="sbTabs">
+      <button class="sb-tab priority active" data-tab="today">
+        <span class="sb-tab-icon">📋</span>
+        <span>Dnešní menu</span>
+        <span class="sb-tab-num">DENNĚ</span>
+      </button>
+      <button class="sb-tab" data-tab="listek">
+        <span class="sb-tab-icon">▤</span>
+        <span>Jídelní lístek</span>
+      </button>
+      <button class="sb-tab" data-tab="about">
+        <span class="sb-tab-icon">¶</span>
+        <span>O restauraci</span>
+      </button>
+      <button class="sb-tab" data-tab="akce">
+        <span class="sb-tab-icon">🎉</span>
+        <span>Akce &amp; catering</span>
+      </button>
+      <button class="sb-tab" data-tab="poukazy">
+        <span class="sb-tab-icon">🎁</span>
+        <span>Dárkové poukazy</span>
+      </button>
+      <button class="sb-tab" data-tab="gallery">
+        <span class="sb-tab-icon">🖼</span>
+        <span>Galerie</span>
+      </button>
+      <button class="sb-tab" data-tab="contact">
+        <span class="sb-tab-icon">☏</span>
+        <span>Kontakty &amp; hodiny</span>
+      </button>
+      <button class="sb-tab" data-tab="settings">
+        <span class="sb-tab-icon">⚙</span>
+        <span>Nastavení</span>
+      </button>
+    </nav>
+
+    <div class="sb-foot">
+      Verze 2.0 · DEMO
+      <button onclick="adminLogout()">Odhlásit</button>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="mobile-bar">
+      <button onclick="toggleSidebar()" aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <strong style="font-family:'Playfair Display',serif;font-weight:500;">Na Kovárně Mrákotín</strong>
+    </div>
+
+    <!-- ─── DNEŠNÍ MENU ─── -->
+    <section class="tab-panel active" data-panel="today">
+      <div class="page-head">
+        <div>
+          <h1>Dnešní menu</h1>
+          <p>Sestavte menu dne kombinací jídel z databáze. Začněte psát první písmena jídla — systém doplní z databáze včetně alergenů. Hotové menu publikujte na web nebo vytiskněte do PDF.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Datum</h2>
+            <div class="desc">Datum, na který menu platí.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <label class="field">
+            <span>Datum menu</span>
+            <input type="date" class="input" id="todayDate" style="max-width:240px;">
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Sestavení menu</h2>
+            <div class="desc">Přidejte sekce (Polévka, Hlavní jídla, Specialita…) a do nich jídla. Cena u sekce je společná pro všechny položky (např. „Polévka 55,-"); jinak má každé jídlo svou cenu.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="mb-wrap" id="mbWrap"></div>
+          <button type="button" class="mb-add-section" id="btnAddSection" style="margin-top: 14px;">+ Přidat sekci</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Poznámka pod menu</h2>
+            <div class="desc">Např. „Polévka ke každému jídlu zdarma" nebo „Menu se podává do 14:00".</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <label class="field">
+            <span>Poznámka</span>
+            <input type="text" class="input" id="todayNote" maxlength="160" placeholder="Volitelně...">
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;">
+        <button type="button" class="btn btn--primary btn--big" id="btnPublish">Publikovat na web ✓</button>
+        <button type="button" class="btn btn--ghost btn--big" id="btnPrint">🖨 Tisk / PDF</button>
+        <button type="button" class="btn btn--ghost btn--big" id="btnImage" title="Stáhne menu jako PNG obrázek — ideální na Facebook">🖼 Obrázek na Facebook</button>
+        <a href="index.html" target="_blank" class="btn btn--ghost btn--big">Otevřít web →</a>
+      </div>
+
+      <div class="card" id="dbCard" style="margin-top: 32px;">
+        <div class="card-head card-toggle" id="dbToggle">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="chev" style="font-size: 14px; color: var(--text-muted);">▾</span>
+            <div>
+              <h2>Databáze jídel <span style="color: var(--text-muted); font-weight: 400; font-size: 13px;">(<span id="dbCount">0</span>)</span></h2>
+              <div class="desc">Knihovna jídel s cenami a alergeny — autocomplete v menu hledá tady.</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn--primary btn--small" id="btnAddDish">+ Přidat jídlo</button>
+        </div>
+        <div class="card-body">
+          <input type="text" class="db-search" id="dbSearch" placeholder="🔍 Hledat v jídlech…">
+          <div style="overflow-x: auto;">
+            <table class="db-table" id="dbTable"></table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── JÍDELNÍ LÍSTEK ─── -->
+    <section class="tab-panel" data-panel="listek">
+      <div class="page-head">
+        <div>
+          <h1>Jídelní lístek</h1>
+          <p>Sekce zobrazené v záložkách na webu — Minutky, Saláty, Denní menu. Klient vidí to, co tu vyplníte.</p>
+        </div>
+        <button class="btn btn--primary" id="btnSaveListek">Uložit změny</button>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="listek-tab-bar" id="listekTabBar"></div>
+          <div id="listekTabContent"></div>
+          <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn btn--ghost btn--small" id="btnAddListekItem">+ Přidat položku</button>
+            <button class="btn btn--ghost btn--small" id="btnAddListekTab">+ Přidat sekci (např. Pivo, Vína)</button>
+            <button class="btn btn--danger btn--small" id="btnRemoveListekTab" style="margin-left:auto;">✕ Smazat tuto sekci</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── O RESTAURACI ─── -->
+    <section class="tab-panel" data-panel="about">
+      <div class="page-head">
+        <div>
+          <h1>O restauraci</h1>
+          <p>Texty na úvodu webu (hero) a v sekci „O nás". Změny se po uložení projeví okamžitě.</p>
+        </div>
+        <button class="btn btn--primary" id="btnSaveAbout">Uložit změny</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Úvodní podtitulek (hero)</h2><div class="desc">Jeden odstavec pod nadpisem na úvodu. Max ~280 znaků.</div></div></div>
+        <div class="card-body">
+          <textarea class="textarea" id="aHeroSub" rows="3" maxlength="280"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Sekce „O nás"</h2><div class="desc">Dva odstavce, které popisují restauraci.</div></div></div>
+        <div class="card-body">
+          <label class="field"><span>První odstavec</span><textarea class="textarea" id="aP1" rows="3"></textarea></label>
+          <label class="field" style="margin-top:14px;"><span>Druhý odstavec</span><textarea class="textarea" id="aP2" rows="3"></textarea></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── AKCE & CATERING ─── -->
+    <section class="tab-panel" data-panel="akce">
+      <div class="page-head">
+        <div>
+          <h1>Akce &amp; catering</h1>
+          <p>Tři karty v sekci „Akce" na webu. Můžete měnit název, popis i ikonu (emoji).</p>
+        </div>
+        <button class="btn btn--primary" id="btnSaveAkce">Uložit změny</button>
+      </div>
+
+      <div class="card">
+        <div class="card-body" id="akceEditor"></div>
+      </div>
+    </section>
+
+    <!-- ─── POUKAZY ─── -->
+    <section class="tab-panel" data-panel="poukazy">
+      <div class="page-head">
+        <div>
+          <h1>Dárkové poukazy</h1>
+          <p>Úvodní text a nabídka poukázek (hodnota + popis). Klient si může objednat poukaz telefonicky.</p>
+        </div>
+        <button class="btn btn--primary" id="btnSavePoukazy">Uložit změny</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Úvodní text</h2></div></div>
+        <div class="card-body">
+          <textarea class="textarea" id="poukazyIntro" rows="3"></textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Poukázky</h2></div></div>
+        <div class="card-body" id="poukazyList"></div>
+        <div style="padding: 0 22px 20px;">
+          <button class="btn btn--ghost btn--small" id="btnAddPoukaz">+ Přidat poukaz</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── GALERIE ─── -->
+    <section class="tab-panel" data-panel="gallery">
+      <div class="page-head">
+        <div>
+          <h1>Galerie</h1>
+          <p>Fotky v sekci „Galerie" na webu. Přidávejte, mažte, popisujte. První fotka se stává největší.</p>
+        </div>
+        <button class="btn btn--primary" id="btnSaveGallery">Uložit změny</button>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="gal-grid" id="galGrid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── KONTAKTY ─── -->
+    <section class="tab-panel" data-panel="contact">
+      <div class="page-head">
+        <div>
+          <h1>Kontakty &amp; otevírací doba</h1>
+          <p>Telefon, email, adresa, FB. Otevírací doba má letní a zimní sadu — na webu se zobrazuje ta, kterou zvolíte přepínačem. Aktuální den se vyznačuje sám.</p>
+        </div>
+        <button class="btn btn--primary" id="btnSaveContact">Uložit změny</button>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Kontakty</h2></div></div>
+        <div class="card-body">
+          <div class="row row-2">
+            <label class="field"><span>Telefon (hlavní)</span><input class="input" id="cPhone" placeholder="774 458 062"></label>
+            <label class="field"><span>Telefon (pevná)</span><input class="input" id="cPhoneAlt" placeholder="567 317 569"></label>
+          </div>
+          <div class="row row-2" style="margin-top:14px;">
+            <label class="field"><span>Email <em style="font-weight:400;text-transform:none;letter-spacing:0;">(nepovinné — prázdný se na webu nezobrazí)</em></span><input class="input" id="cEmail" placeholder="Nechat prázdné = bez e-mailu na webu"></label>
+            <label class="field"><span>Facebook URL</span><input class="input" id="cFb"></label>
+          </div>
+          <div class="row row-2" style="margin-top:14px;">
+            <label class="field"><span>Adresa — řádek 1</span><input class="input" id="cAddr1" placeholder="Mrákotín 50"></label>
+            <label class="field"><span>Adresa — řádek 2</span><input class="input" id="cAddr2" placeholder="588 54 Mrákotín"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Otevírací doba</h2>
+            <div class="desc">Dvě sady hodin — letní a zimní. Vyplňte obě a přepínačem níže zvolte, která se právě zobrazuje na webu.</div>
+          </div>
+          <button class="btn btn--ghost btn--small" id="btnAddHours">+ Přidat řádek</button>
+        </div>
+        <div class="card-body">
+          <div class="listek-tab-bar" id="seasonTabBar" style="margin-bottom:14px;">
+            <button class="listek-tab-btn" data-season="letni">☀️ Letní</button>
+            <button class="listek-tab-btn" data-season="zimni">❄️ Zimní</button>
+          </div>
+          <div class="hours-rows" id="hoursRows"></div>
+          <div style="margin-top:18px; padding:14px 16px; background:var(--cream); border-radius:10px;">
+            <span style="display:block; font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Na webu se zobrazuje</span>
+            <label style="margin-right:18px; font-size:14px; cursor:pointer;"><input type="radio" name="activeSeason" value="letni"> ☀️ Letní provoz</label>
+            <label style="font-size:14px; cursor:pointer;"><input type="radio" name="activeSeason" value="zimni"> ❄️ Zimní provoz</label>
+          </div>
+          <label class="field" style="margin-top:18px;">
+            <span>Poznámka pod hodinami</span>
+            <textarea class="textarea" id="hoursNote" rows="2"></textarea>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── NASTAVENÍ ─── -->
+    <section class="tab-panel" data-panel="settings">
+      <div class="page-head">
+        <div>
+          <h1>Nastavení</h1>
+          <p>Bezpečnost a zálohy.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Změnit PIN</h2></div></div>
+        <div class="card-body">
+          <div class="row row-2">
+            <label class="field"><span>Nový PIN</span><input class="input" id="newPin" maxlength="4" inputmode="numeric"></label>
+            <label class="field"><span>Potvrdit</span><input class="input" id="newPin2" maxlength="4" inputmode="numeric"></label>
+          </div>
+          <button class="btn btn--primary" style="margin-top:14px;" onclick="changePin()">Změnit PIN</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Záloha dat</h2></div></div>
+        <div class="card-body">
+          <p style="font-size:13.5px;color:var(--text-muted);line-height:1.6;margin-bottom:14px;">
+            Stáhněte si JSON zálohu všech dat. Pokud byste chtěli web obnovit, JSON nahrajete zpět.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn--ghost" onclick="exportData()">⬇ Stáhnout zálohu</button>
+            <label class="btn btn--ghost" style="cursor:pointer;">
+              ⬆ Nahrát zálohu
+              <input type="file" accept="application/json" style="display:none;" onchange="importData(event)">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><div><h2>Otevřít web</h2></div></div>
+        <div class="card-body">
+          <a href="index.html" target="_blank" class="btn btn--primary">Otevřít web v nové záložce →</a>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ═══ DISH MODAL ═══ -->
+<div class="modal-backdrop" id="dishModal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="dishModalTitle">Přidat jídlo</h3>
+      <button type="button" class="modal-close" onclick="closeDishModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <label class="field">
+        <span>Název jídla *</span>
+        <input class="input" id="dmName" placeholder="např. Svíčková na smetaně" autocomplete="off">
+      </label>
+      <label class="field" style="margin-top: 12px;">
+        <span>Popis (přílohy, omáčky…)</span>
+        <input class="input" id="dmDesc" placeholder="např. houskový knedlík, brusinky, šlehačka" autocomplete="off">
+      </label>
+      <div class="row row-3" style="margin-top: 12px; grid-template-columns: 1fr 1fr 1fr;">
+        <label class="field">
+          <span>Gramáž</span>
+          <input class="input" id="dmWeight" placeholder="200 g" autocomplete="off">
+        </label>
+        <label class="field">
+          <span>Cena (Kč) *</span>
+          <input class="input" id="dmPrice" type="number" min="0" placeholder="0">
+        </label>
+        <label class="field">
+          <span>Kategorie</span>
+          <select class="input" id="dmCategory">
+            <option value="polevka">Polévka</option>
+            <option value="hlavni" selected>Hlavní jídlo</option>
+            <option value="bezmasa">Bezmasé / salát</option>
+            <option value="priloha">Příloha</option>
+            <option value="dezert">Dezert</option>
+            <option value="napoj">Nápoj</option>
+          </select>
+        </label>
+      </div>
+      <div style="margin-top: 18px;">
+        <span style="display: block; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px;">Alergeny</span>
+        <div class="allergen-grid" id="dmAllergens"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button type="button" class="btn btn--danger" id="dmDelete" style="display:none; margin-right: auto;">Smazat jídlo</button>
+      <button type="button" class="btn btn--ghost" onclick="closeDishModal()">Zrušit</button>
+      <button type="button" class="btn btn--primary" id="dmSave">Uložit jídlo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PRINT AREA ═══ -->
+<div id="printArea"></div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- Server sync: stavová pilulka + jednorázové zadání hesla -->
+<style>
+  .sync-pill {
+    position: fixed; bottom: 16px; left: 16px; z-index: 900;
+    display: none; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 600;
+    background: #10201f; color: #e8f0ef;
+    border: 1px solid #2a4241; border-radius: 20px;
+    padding: 7px 14px; cursor: default;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  }
+  .sync-pill.nopass, .sync-pill.badpass { cursor: pointer; border-color: #7a3b2e; }
+  .sync-pill.offline { border-color: #8a6508; }
+  .pb-pass-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(8, 16, 15, 0.72);
+  }
+  .pb-pass-box {
+    background: #142726; border: 1px solid #2a4241; border-radius: 14px;
+    padding: 28px; width: min(92vw, 380px);
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .pb-pass-box h3 { color: #e8f0ef; font-size: 1.05rem; margin: 0; }
+  .pb-pass-box p { color: #9ab4b2; font-size: 0.83rem; margin: 0; line-height: 1.45; }
+  .pb-pass-box input {
+    background: #0e1d1c; border: 1px solid #2a4241; border-radius: 8px;
+    color: #e8f0ef; font-size: 1rem; padding: 11px 12px; width: 100%;
+  }
+  .pb-pass-box button {
+    background: #7ECFCE; color: #0e1d1c; font-weight: 700;
+    border: none; border-radius: 8px; padding: 11px; font-size: 0.95rem; cursor: pointer;
+  }
+</style>
+<div class="sync-pill" id="syncPill"></div>
+<div class="pb-pass-overlay" id="pbPassOverlay">
+  <div class="pb-pass-box">
+    <h3>Připojení k serveru</h3>
+    <p>Zadejte heslo pro ukládání změn na web. Stačí jednou — toto zařízení si ho zapamatuje.</p>
+    <input type="password" id="pbPassInput" placeholder="Heslo" autocomplete="current-password">
+    <button id="pbPassBtn" type="button">Připojit</button>
+  </div>
+</div>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('syncPill').addEventListener('click', () => {
+      const c = document.getElementById('syncPill').className;
+      if (c.includes('nopass') || c.includes('badpass') || c.includes('offline')) pbAskPassword();
+    });
+    document.getElementById('pbPassBtn').addEventListener('click', pbSubmitPassword);
+    document.getElementById('pbPassInput').addEventListener('keydown', e => { if (e.key === 'Enter') pbSubmitPassword(); });
+    document.getElementById('pbPassOverlay').addEventListener('click', e => {
+      if (e.target.id === 'pbPassOverlay') e.target.style.display = 'none';
+    });
+  });
+</script>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONFIG (zrcadlí index.html)
+   ════════════════════════════════════════════════════════════ */
+const STORAGE_KEY = 'kovarna_data';
+const PIN_KEY = 'kovarna_admin_pin';
+const SESSION_KEY = 'kovarna_admin_session';
+const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+const DEFAULT_PIN = '1793';
+
+/* ─── SEED: reálné jídelníčky od klienta (08/2026) ───
+   Zdroj: JIDELNI LISTEK Kovarna 1.1.2026 + Denní menu 18.8. + Menu víkend 16.8.
+   ⚠️ Alergeny jsou náš odhad — klient je MUSÍ zkontrolovat v adminu! */
+const DISHES_SEED = [
+  /* POLÉVKY */
+  { id: 'd_vyvar',        name: 'Hovězí vývar s masem a nudlemi', desc: '', weight: '', price: 59, allergens: [1,3,9], category: 'polevka' },
+  { id: 'd_fazolova',     name: 'Fazolová s klobásou', desc: '', weight: '', price: 59, allergens: [1], category: 'polevka' },
+  { id: 'd_cesnecka',     name: 'Staročeská česnečka s chlebovými krutony', desc: '', weight: '', price: 59, allergens: [1,3], category: 'polevka' },
+  /* HLAVNÍ JÍDLA / MINUTKY */
+  { id: 'd_tatarak',      name: 'Hovězí tatarák', desc: 'a 5 ks topinek', weight: '125 g', price: 218, allergens: [1,3,10], category: 'hlavni' },
+  { id: 'd_katuv_sleh',   name: 'Katův šleh z vepřové panenky', desc: 'lehce pikantní, hranolky', weight: '250 g', price: 245, allergens: [1,10], category: 'hlavni' },
+  { id: 'd_spagety_kure', name: 'Špagety s kuřecím masem a sušenými rajčaty', desc: 'parmazán', weight: '200 g', price: 215, allergens: [1,3,7], category: 'hlavni' },
+  { id: 'd_lokse_trhane', name: 'Lokše s trhaným vepřovým masem', desc: 'švestková omáčka', weight: '200 g', price: 265, allergens: [1], category: 'hlavni' },
+  { id: 'd_kureci_steak', name: 'Kuřecí steak s cheddarovou omáčkou', desc: 'hranolky', weight: '200 g', price: 245, allergens: [7], category: 'hlavni' },
+  { id: 'd_rump_steak',   name: 'Filírovaný hovězí Rump steak', desc: 'fazolky na slanině, šťouchané brambory s cibulkou a slaninou', weight: '200 g', price: 325, allergens: [7], category: 'hlavni' },
+  { id: 'd_panenka',      name: 'Filírovaná vepřová panenka s pepřovou omáčkou', desc: 'šťouchané brambory s cibulkou a slaninou', weight: '200 g', price: 275, allergens: [7], category: 'hlavni' },
+  { id: 'd_pstruh_gril',  name: 'Filetovaný pstruh na grilu', desc: 'restovaná zelenina, šťouchané brambory s cibulkou a slaninou', weight: '220 g', price: 258, allergens: [4,7], category: 'hlavni' },
+  { id: 'd_rizecky_kure', name: 'Smažené kuřecí řízečky', desc: 'hranolky, salát Coleslaw', weight: '200 g', price: 215, allergens: [1,3,7,10], category: 'hlavni' },
+  { id: 'd_rizoto',       name: 'Drůbeží rizoto sypané sýrem', desc: 'okurka', weight: '250 g', price: 155, allergens: [7,9], category: 'hlavni' },
+  { id: 'd_sipkova',      name: 'Hovězí kýta se šípkovou omáčkou', desc: 'houskový knedlík', weight: '200 g', price: 199, allergens: [1,3,7,9], category: 'hlavni' },
+  { id: 'd_brambora_trh', name: 'Pečená brambora s trhaným vepřovým masem', desc: 'cheddarová omáčka', weight: '200 g', price: 225, allergens: [7], category: 'hlavni' },
+  { id: 'd_pstruh_rata',  name: 'Filety ze pstruha s restovanou zeleninou Ratatouille', desc: 'vařený brambor', weight: '200 g', price: 245, allergens: [4], category: 'hlavni' },
+  { id: 'd_licka',        name: 'Hovězí líčka na víně', desc: 'šťouchaný brambor', weight: '200 g', price: 243, allergens: [7,9,12], category: 'hlavni' },
+  { id: 'd_rizek_kure',   name: 'Smažený kuřecí řízek', desc: 'šťouchaný brambor, salát coleslaw', weight: '200 g', price: 245, allergens: [1,3,7,10], category: 'hlavni' },
+  { id: 'd_zapekane',     name: 'Zapékané těstoviny s uzeným masem', desc: 'okurkový salát', weight: '250 g', price: 175, allergens: [1,3,7], category: 'hlavni' },
+  { id: 'd_holandsky',    name: 'Holandský řízek', desc: 'šťouchané brambory, salát coleslaw', weight: '180 g', price: 195, allergens: [1,3,7,10], category: 'hlavni' },
+  { id: 'd_vrabec',       name: 'Moravský vrabec', desc: 'dušené bílé zelí, bramborový knedlík', weight: '200 g', price: 198, allergens: [1], category: 'hlavni' },
+  { id: 'd_svickova',     name: 'Svíčková na smetaně s brusinkovým terčem', desc: 'houskový knedlík', weight: '200 g', price: 225, allergens: [1,3,7,9,10], category: 'hlavni' },
+  { id: 'd_steak_houby',  name: 'Vepřový steak s houbovou omáčkou', desc: 'hranolky', weight: '220 g', price: 245, allergens: [1,7], category: 'hlavni' },
+  { id: 'd_rizecky_pan',  name: 'Řízečky z vepřové panenky', desc: 'šťouchaný brambor, okurka', weight: '220 g', price: 255, allergens: [1,3,7,10], category: 'hlavni' },
+  { id: 'd_trhane_hov',   name: 'Trhané hovězí maso na pečené bramboře', desc: 'cheddarová omáčka', weight: '200 g', price: 255, allergens: [7], category: 'hlavni' },
+  /* BEZMASÁ / SALÁTY */
+  { id: 'd_caesar',       name: 'Caesar salát s kuřecím masem', desc: 'slanina, parmazán, toust', weight: '150 g', price: 215, allergens: [1,3,4,7,10], category: 'bezmasa' },
+  { id: 'd_spagety_bez',  name: 'Špagety se sušenými rajčaty', desc: 'parmazán', weight: '200 g', price: 165, allergens: [1,3,7], category: 'bezmasa' },
+  { id: 'd_hermelin',     name: 'Grilovaný hermelín na listovém salátu', desc: 'medovohořčičná zálivka, toust', weight: '120 g', price: 195, allergens: [1,7,10], category: 'bezmasa' },
+  { id: 'd_smazeny_syr',  name: 'Smažený sýr (gouda 48 %)', desc: 'hranolky, tatarská omáčka', weight: '100 g', price: 197, allergens: [1,3,7,10], category: 'bezmasa' },
+  { id: 'd_coleslaw',     name: 'Salát Coleslaw', desc: '', weight: '150 g', price: 55, allergens: [3,7,10], category: 'bezmasa' },
+  /* PŘÍLOHY */
+  { id: 'd_hranolky',     name: 'Hranolky', desc: '', weight: '200 g', price: 55, allergens: [], category: 'priloha' },
+  { id: 'd_krokety',      name: 'Krokety', desc: '', weight: '200 g', price: 65, allergens: [1,3], category: 'priloha' },
+  { id: 'd_ryze',         name: 'Dušená rýže', desc: '', weight: '200 g', price: 30, allergens: [], category: 'priloha' },
+  { id: 'd_brambory_var', name: 'Vařené brambory', desc: '', weight: '200 g', price: 40, allergens: [], category: 'priloha' },
+  { id: 'd_brambory_st',  name: 'Šťouchané brambory', desc: '', weight: '200 g', price: 45, allergens: [7], category: 'priloha' },
+  { id: 'd_kecup',        name: 'Kečup', desc: '', weight: '50 ml', price: 20, allergens: [], category: 'priloha' },
+  { id: 'd_tatarka',      name: 'Tatarská omáčka', desc: '', weight: '50 ml', price: 35, allergens: [3,10], category: 'priloha' },
+  { id: 'd_brusinky',     name: 'Brusinky', desc: '', weight: '50 ml', price: 35, allergens: [], category: 'priloha' },
+  /* DEZERTY */
+  { id: 'd_maliny',       name: 'Horké maliny s vanilkovou zmrzlinou', desc: 'šlehačka', weight: '', price: 105, allergens: [7], category: 'dezert' },
+  { id: 'd_palacinka',    name: 'Palačinka s čokoládovou náplní', desc: 'šlehačka', weight: '', price: 55, allergens: [1,3,6,7], category: 'dezert' },
+];
+
+const LISTEK_SEED = [
+  { id: 'minutky', title: 'Minutky',
+    items: [
+      { weight: '125 g', name: 'Hovězí tatarák', desc: 'a 5 ks topinek', price: 218, allergens: [1,3,10] },
+      { weight: '250 g', name: 'Katův šleh z vepřové panenky', desc: 'lehce pikantní, hranolky', price: 245, allergens: [1,10] },
+      { weight: '200 g', name: 'Papardelle s kuřecím masem', desc: 'sušená rajčata, parmazán', price: 215, allergens: [1,3,7] },
+      { weight: '200 g', name: 'Lokše s trhaným vepřovým masem', desc: 'švestková omáčka', price: 265, allergens: [1] },
+      { weight: '200 g', name: 'Kuřecí steak s cheddarovou omáčkou', desc: 'hranolky', price: 245, allergens: [7] },
+      { weight: '200 g', name: 'Filírovaný hovězí Rump steak', desc: 'fazolky na slanině, šťouchané brambory s cibulkou a slaninou', price: 325, allergens: [7] },
+      { weight: '200 g', name: 'Filírovaná vepřová panenka s pepřovou omáčkou', desc: 'šťouchané brambory s cibulkou a slaninou', price: 275, allergens: [7] },
+      { weight: '220 g', name: 'Filetovaný pstruh na grilu', desc: 'restovaná zelenina, šťouchané brambory s cibulkou a slaninou', price: 258, allergens: [4,7] },
+      { weight: '200 g', name: 'Smažené kuřecí řízečky', desc: 'hranolky, salát Coleslaw', price: 215, allergens: [1,3,7,10] }
+    ]},
+  { id: 'salaty', title: 'Saláty &amp; bezmasá jídla',
+    items: [
+      { weight: '150 g', name: 'Caesar salát s kuřecím masem', desc: 'slanina, parmazán, toust', price: 215, allergens: [1,3,4,7,10] },
+      { weight: '200 g', name: 'Papardelle se sušenými rajčaty', desc: 'parmazán', price: 165, allergens: [1,3,7] },
+      { weight: '120 g', name: 'Grilovaný hermelín na listovém salátu', desc: 's medovohořčičnou zálivkou, toust', price: 195, allergens: [1,7,10] },
+      { weight: '100 g', name: 'Smažený sýr (gouda 48 %)', desc: 'hranolky, tatarská omáčka', price: 197, allergens: [1,3,7,10] },
+      { weight: '150 g', name: 'Salát Coleslaw', desc: '', price: 55, allergens: [3,7,10] }
+    ]},
+  { id: 'prilohy', title: 'Přílohy',
+    items: [
+      { weight: '200 g', name: 'Hranolky', desc: '', price: 55, allergens: [] },
+      { weight: '200 g', name: 'Krokety', desc: '', price: 65, allergens: [1,3] },
+      { weight: '200 g', name: 'Dušená rýže', desc: '', price: 30, allergens: [] },
+      { weight: '200 g', name: 'Vařené brambory', desc: '', price: 40, allergens: [] },
+      { weight: '200 g', name: 'Šťouchané brambory', desc: '', price: 45, allergens: [7] },
+      { weight: '50 ml', name: 'Kečup', desc: '', price: 20, allergens: [] },
+      { weight: '50 ml', name: 'Tatarská omáčka', desc: '', price: 35, allergens: [3,10] },
+      { weight: '50 ml', name: 'Brusinky', desc: '', price: 35, allergens: [] }
+    ]},
+  { id: 'dezerty', title: 'Dezerty',
+    items: [
+      { name: 'Horké maliny s vanilkovou zmrzlinou a šlehačkou', desc: '', price: 105, allergens: [7] }
+    ]},
+  { id: 'denni', title: 'Denní menu',
+    items: [
+      { _special: true, label: 'Každý den', strong: 'Polévka + hlavní jídlo', priceText: 'od 175 Kč' },
+      { name: 'Aktuální nabídka', desc: 'Mění se každý den · sledujte sekci výše nebo Facebook', price: '—' },
+      { name: 'Rezervace na telefonu', desc: '567 317 569', price: '—' }
+    ]}
+];
+
+const MENU_TODAY_SEED = {
+  date: null,   // null = zobrazuje se dnešní datum
+  note: 'Polední menu podáváme 11:00 – 14:00 · Rezervace na telefonu 567 317 569',
+  sections: [
+    { id: 'sec_polevka', title: 'Polévka', priceText: '59,- Kč',
+      items: [ { dishId: 'd_vyvar' }, { dishId: 'd_fazolova' } ] },
+    { id: 'sec_menu1', title: 'Menu 1', priceText: '175,- Kč',
+      items: [ { name: 'Polévka dle denní nabídky' }, { dishId: 'd_zapekane' } ] },
+    { id: 'sec_menu2', title: 'Menu 2', priceText: '195,- Kč',
+      items: [ { name: 'Polévka dle denní nabídky' }, { dishId: 'd_holandsky' } ] },
+    { id: 'sec_hotova', title: 'Hotová jídla a minutky',
+      items: [
+        { dishId: 'd_rizoto' }, { dishId: 'd_sipkova' }, { dishId: 'd_brambora_trh' },
+        { dishId: 'd_pstruh_rata' }, { dishId: 'd_licka' }, { dishId: 'd_rizek_kure' },
+        { dishId: 'd_katuv_sleh', weight: '220 g', price: 249 },
+        { dishId: 'd_spagety_kure' }, { dishId: 'd_kureci_steak' },
+        { dishId: 'd_panenka' }
+      ] },
+    { id: 'sec_salaty', title: 'Saláty a bezmasá jídla',
+      items: [ { dishId: 'd_caesar' }, { dishId: 'd_hermelin' }, { dishId: 'd_spagety_bez' }, { dishId: 'd_smazeny_syr' }, { dishId: 'd_coleslaw' } ] },
+    { id: 'sec_dezert', title: 'Dezerty',
+      items: [ { dishId: 'd_maliny' }, { dishId: 'd_palacinka' } ] }
+  ],
+  imageUrl: null
+};
+
+const DEFAULT_DATA = {
+  version: 2,
+  menuVersion: 3,
+  contact: {
+    phone: '774 458 062', phoneAlt: '567 317 569',
+    email: '',   // klient nechce e-mail na webu — když je prázdný, web ho nikde nezobrazí
+    addressLine1: 'Mrákotín 50', addressLine2: '588 54 Mrákotín',
+    facebook: 'https://www.facebook.com/Restaurace-Na-Kov%C3%A1rn%C4%9B-139931546656584',
+    company: 'V.K.V. 1793, s.r.o.'
+  },
+  hours: [
+    { day: 'Pondělí – Čtvrtek', time: '11:00 – 21:00', match: [1,2,3,4] },
+    { day: 'Pátek',             time: '11:00 – 23:00', match: [5] },
+    { day: 'Sobota',            time: '11:00 – 22:00', match: [6] },
+    { day: 'Neděle',            time: '11:00 – 21:00', match: [0] }
+  ],
+  hoursSeason: 'letni',
+  hoursSeasons: {
+    letni: [
+      { day: 'Pondělí – Čtvrtek', time: '11:00 – 21:00', match: [1,2,3,4] },
+      { day: 'Pátek',             time: '11:00 – 23:00', match: [5] },
+      { day: 'Sobota',            time: '11:00 – 22:00', match: [6] },
+      { day: 'Neděle',            time: '11:00 – 21:00', match: [0] }
+    ],
+    zimni: [
+      { day: 'Pondělí – Čtvrtek', time: '11:00 – 21:00', match: [1,2,3,4] },
+      { day: 'Pátek',             time: '11:00 – 23:00', match: [5] },
+      { day: 'Sobota',            time: '11:00 – 22:00', match: [6] },
+      { day: 'Neděle',            time: '11:00 – 21:00', match: [0] }
+    ]
+  },
+  hoursNote: 'Polední menu 11:00 – 14:00. Zavírací doba je orientační dle naplněnosti restaurace.',
+  hero: {
+    subtitle: 'Překvapí vás svou útulností interiéru a rodinnou atmosférou uprostřed krásné Vysočiny. Polední menu, krajové speciality, oslavy a catering pro rodiny i firmy.'
+  },
+  about: {
+    p1: 'Restaurace Na Kovárně se nachází v srdci malebného Mrákotína. Jsme tu pro vás každý den od 11 hodin — ať hledáte vydatný oběd, příjemnou večeři s rodinou, nebo místo pro soukromou oslavu.',
+    p2: 'Naším cílem je poctivá česká kuchyně připravovaná z čerstvých surovin, přátelská obsluha a prostředí, ve kterém se budete cítit jako doma. Kapacita až 50 míst v útulném salónku, v teplých měsících doplněných letní zahrádkou.'
+  },
+  menuToday: MENU_TODAY_SEED,
+  dishes: DISHES_SEED,
+  listekTabs: LISTEK_SEED,
+  galleryVersion: 3,
+  gallery: [
+    { src: 'img/sal-siroky.webp',           caption: 'Sál připravený na oslavu' },
+    { src: 'img/oslavy-hrnecky.webp',       caption: 'Hrnečky Na Kovárně 1793' },
+    { src: 'img/bar.jpg',                   caption: 'Tradiční bar a výčep' },
+    { src: 'img/sal-tabule.webp',           caption: 'Slavnostní tabule' },
+    { src: 'img/interier-dvere.webp',       caption: 'Pohled do sálu' },
+    { src: 'img/oslavy-zakusky.webp',       caption: 'Sladké pohoštění' },
+    { src: 'img/detail-balon.webp',         caption: 'Balón pod trámy' },
+    { src: 'img/oslavy-zakusky-detail.webp',caption: 'Zákusky na slavnostní tabuli' },
+    { src: 'img/interier-obraz.webp',       caption: 'Zákoutí salónku' },
+    { src: 'img/oslavy-tabule-bok.webp',    caption: 'Prostřeno pro hosty' },
+    { src: 'img/vstup.jpg',                 caption: 'Vstupní hala' }
+  ],
+  akce: [
+    { icon: '🎂', title: 'Rodinné oslavy',
+      text: 'Narozeniny, výročí, rodinná setkání — vytvoříme nezapomenutelnou atmosféru v útulných prostorách restaurace pro vaše blízké.',
+      tag: 'Až 50 osob' },
+    { icon: '💼', title: 'Firemní akce',
+      text: 'Firemní večírky, teambuildingy a pracovní obědy. Postaráme se o pohoštění i příjemné prostředí.',
+      tag: 'Individuální nabídka' },
+    { icon: '🍽️', title: 'Catering &amp; svatby',
+      text: 'Postaráme se i o catering u vás — svatby, výročí nebo firemní akce pro 15 až 100 osob. Domluvíme společně rozsah, menu i obsluhu.',
+      tag: 'Catering · 15–100 osob' }
+  ],
+  poukazy: {
+    intro: 'Nevíte, co darovat blízkým? Dárkový poukaz do restaurace Na Kovárně potěší milovníky dobré kuchyně i ty, kdo si rádi dopřejí příjemný večer.',
+    items: [
+      { label: 'Dárkový poukaz', strong: 'Příjemná večeře',                 amount: 250 },
+      { label: 'Dárkový poukaz', strong: 'Zážitkový gastronomický večer',   amount: 500 }
+    ]
+  }
+};
+
+/* ─── storage ─── */
+function deepMerge(base, over) {
+  if (Array.isArray(over)) return over;
+  if (typeof over !== 'object' || over === null) return over;
+  const out = { ...base };
+  for (const k of Object.keys(over)) out[k] = (k in base) ? deepMerge(base[k], over[k]) : over[k];
+  return out;
+}
+/* Merge uložených dat s výchozími + verze migrace (společné pro localStorage i server) */
+function mergeSaved(saved) {
+  // Fotky v2 (08/2026): starší uloženou galerii zahodíme, ať se použije nová výchozí
+  if ((saved.galleryVersion || 1) < DEFAULT_DATA.galleryVersion) delete saved.gallery;
+  // Menu v3 (08/2026): reálné jídelníčky od klienta — starší uložená jídla/lístek/menu zahodíme
+  if ((saved.menuVersion || 1) < DEFAULT_DATA.menuVersion) {
+    delete saved.dishes; delete saved.listekTabs; delete saved.menuToday; delete saved.akce;
+    if (saved.contact && saved.contact.email === 'ing.vesely@outlook.com') saved.contact.email = '';
+  }
+  return deepMerge(JSON.parse(JSON.stringify(DEFAULT_DATA)), saved);
+}
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return JSON.parse(JSON.stringify(DEFAULT_DATA));
+    return mergeSaved(JSON.parse(raw));
+  } catch { return JSON.parse(JSON.stringify(DEFAULT_DATA)); }
+}
+function saveData() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    schedulePbPush(); // async uložení na server (sdílená data pro web)
+    return true;
+  } catch (e) {
+    console.error('saveData failed', e);
+    if (e.name === 'QuotaExceededError' || /quota/i.test(e.message || '')) {
+      toast('Úložiště je plné. Smažte něco z galerie nebo starý obrázek menu.', 'error');
+    } else {
+      toast('Uložení selhalo: ' + (e.message || e.name), 'error');
+    }
+    return false;
+  }
+}
+let state = loadData();
+
+/* ─── Server sync (PocketBase) ──────────────────────────
+   Web čte data veřejně; admin po přihlášení zapisuje.
+   Heslo se ukládá jen do localStorage tohoto zařízení
+   (zadává se jednou), v kódu není.
+   ──────────────────────────────────────────────────── */
+const PB_URL = location.hostname.endsWith('nakovarnemrakotin.cz')
+  ? 'https://pb.nakovarnemrakotin.cz'
+  : 'http://kovarna-pb.46.225.180.130.sslip.io';
+const PB_EMAIL = 'admin@nakovarnemrakotin.cz';
+const PB_PASS_KEY = 'kovarna_pb_pass';
+let pbToken = null, pbRecordId = null, pbPushTimer = null;
+
+function pbStatus(mode) {
+  const pill = document.getElementById('syncPill');
+  if (!pill) return;
+  pill.className = 'sync-pill ' + mode;
+  pill.style.display = 'flex';
+  const txt = {
+    connecting: '⏳ Připojuji k serveru…',
+    online:     '🟢 Server připojen — změny se ukládají',
+    nopass:     '🔴 Nepřipojeno — klikněte a zadejte heslo',
+    badpass:    '🔴 Chybné heslo — klikněte a zadejte znovu',
+    offline:    '🟠 Server nedostupný — ukládá se jen lokálně'
+  }[mode] || mode;
+  pill.textContent = txt;
+  if (mode === 'online') setTimeout(() => { if (pill.className.includes('online')) pill.style.display = 'none'; }, 4000);
+}
+
+async function pbAuth(pass) {
+  const res = await fetch(PB_URL + '/api/collections/users/auth-with-password', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ identity: PB_EMAIL, password: pass })
+  });
+  if (!res.ok) throw new Error('auth failed');
+  pbToken = (await res.json()).token;
+}
+
+async function pbConnect() {
+  pbStatus('connecting');
+  // 1) Stáhnout aktuální sdílená data (čtení je veřejné — funguje i bez hesla)
+  try {
+    const res = await fetch(PB_URL + '/api/collections/site_data/records?perPage=1&filter=' + encodeURIComponent('key="kovarna_data"'));
+    if (res.ok) {
+      const rec = ((await res.json()).items || [])[0];
+      if (rec) {
+        pbRecordId = rec.id;
+        if (rec.data && typeof rec.data === 'object') {
+          state = mergeSaved(JSON.parse(JSON.stringify(rec.data)));
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(rec.data)); } catch {}
+          initApp(); // překreslit editory podle serverových dat
+        }
+      }
+    }
+  } catch (e) { console.warn('pbConnect fetch', e); }
+  // 2) Přihlásit pro zápis
+  const pass = localStorage.getItem(PB_PASS_KEY);
+  if (!pass) { pbStatus('nopass'); return; }
+  try { await pbAuth(pass); } catch { localStorage.removeItem(PB_PASS_KEY); pbStatus('badpass'); return; }
+  // 3) Pokud sdílený záznam ještě neexistuje, založit ho z aktuálních dat
+  if (!pbRecordId) await pbPush();
+  pbStatus('online');
+}
+
+function schedulePbPush() {
+  clearTimeout(pbPushTimer);
+  pbPushTimer = setTimeout(pbPush, 600);
+}
+
+async function pbPush() {
+  if (!pbToken) { if (localStorage.getItem(PB_PASS_KEY) === null) pbStatus('nopass'); return; }
+  const url = PB_URL + '/api/collections/site_data/records' + (pbRecordId ? '/' + pbRecordId : '');
+  const opts = () => ({
+    method: pbRecordId ? 'PATCH' : 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': pbToken },
+    body: JSON.stringify(pbRecordId ? { data: state } : { key: 'kovarna_data', data: state })
+  });
+  try {
+    let res = await fetch(url, opts());
+    if (res.status === 401 || res.status === 403) {
+      const pass = localStorage.getItem(PB_PASS_KEY);
+      if (!pass) throw new Error('no pass');
+      await pbAuth(pass);
+      res = await fetch(url, opts());
+    }
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    pbRecordId = (await res.json()).id;
+    pbStatus('online');
+  } catch (e) {
+    console.error('pbPush', e);
+    pbStatus('offline');
+    toast('⚠ Na server se nepodařilo uložit — změna je zatím jen v tomto prohlížeči', 'error');
+  }
+}
+
+function pbAskPassword() {
+  const overlay = document.getElementById('pbPassOverlay');
+  overlay.style.display = 'flex';
+  const inp = document.getElementById('pbPassInput');
+  inp.value = ''; inp.focus();
+}
+function pbSubmitPassword() {
+  const v = document.getElementById('pbPassInput').value.trim();
+  if (!v) return;
+  localStorage.setItem(PB_PASS_KEY, v);
+  document.getElementById('pbPassOverlay').style.display = 'none';
+  pbConnect();
+}
+
+/* ─── Image compression (canvas → JPEG) ────────────────
+   Zmenší obrázek na max šířku, převede na JPEG.
+   Řeší: 1) velikost (5 MB localStorage limit),
+         2) HEIC z iPhone, 3) PNG s alpha kanálem
+   ─────────────────────────────────────────────────── */
+function compressImage(file, maxWidth = 1600, quality = 0.88) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) return reject(new Error('Není to obrázek'));
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Nepodařilo se načíst soubor'));
+    reader.onload = ev => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Obrázek nelze načíst (možná HEIC z iPhone? Zkuste JPG/PNG)'));
+      img.onload = () => {
+        const w = img.naturalWidth, h = img.naturalHeight;
+        const scale = w > maxWidth ? maxWidth / w : 1;
+        const targetW = Math.round(w * scale), targetH = Math.round(h * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW; canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        // bílé pozadí pro PNG s alphou
+        ctx.fillStyle = '#F6F2EB'; ctx.fillRect(0, 0, targetW, targetH);
+        ctx.drawImage(img, 0, 0, targetW, targetH);
+        try {
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({ dataUrl, w: targetW, h: targetH, sizeKb: Math.round(dataUrl.length * 0.75 / 1024) });
+        } catch (err) { reject(err); }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ─── PIN + Session ─── */
+function getPin() { return localStorage.getItem(PIN_KEY) || DEFAULT_PIN; }
+function setPin(p) { localStorage.setItem(PIN_KEY, p); }
+function isUnlocked() {
+  try {
+    const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
+    return s && (Date.now() - s.t < SESSION_TTL_MS);
+  } catch { return false; }
+}
+function unlock() {
+  sessionStorage.setItem(SESSION_KEY, JSON.stringify({ t: Date.now() }));
+  document.getElementById('pinScreen').style.display = 'none';
+  document.getElementById('adminApp').classList.add('unlocked');
+  initApp();
+  pbConnect();
+}
+function adminLogout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
+
+const pinInput = document.getElementById('pinInput');
+const pinError = document.getElementById('pinError');
+pinInput.addEventListener('input', e => {
+  pinError.textContent = ''; pinInput.classList.remove('error');
+  const v = e.target.value.replace(/\D/g,'');
+  if (v !== e.target.value) e.target.value = v;
+  if (v.length === 4) {
+    if (v === getPin()) unlock();
+    else { pinError.textContent = 'Chybný PIN'; pinInput.classList.add('error'); setTimeout(() => { pinInput.value=''; pinInput.focus(); }, 600); }
+  }
+});
+/* Pozn.: kontrola aktivní session (auto-unlock) je až na KONCI skriptu —
+   unlock() volá initApp(), který potřebuje už inicializované `let` proměnné níže. */
+
+function changePin() {
+  const a = document.getElementById('newPin').value;
+  const b = document.getElementById('newPin2').value;
+  if (!/^\d{4}$/.test(a)) return toast('PIN musí být 4 čísla', 'error');
+  if (a !== b) return toast('PIN se neshoduje', 'error');
+  setPin(a);
+  document.getElementById('newPin').value = ''; document.getElementById('newPin2').value = '';
+  toast('PIN změněn', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════
+   APP INIT
+   ════════════════════════════════════════════════════════════ */
+function initApp() {
+  migrateData();
+  setupTabs();
+  renderToday();
+  renderDishesDb();
+  renderListekEditor();
+  renderAboutEditor();
+  renderAkceEditor();
+  renderPoukazyEditor();
+  renderGalleryEditor();
+  renderContactEditor();
+  renderAllergenChips();
+
+  document.getElementById('btnSaveListek').onclick   = saveListek;
+  document.getElementById('btnSaveAbout').onclick    = saveAbout;
+  document.getElementById('btnSaveAkce').onclick     = saveAkce;
+  document.getElementById('btnSavePoukazy').onclick  = savePoukazy;
+  document.getElementById('btnSaveGallery').onclick  = saveGallery;
+  document.getElementById('btnSaveContact').onclick  = saveContact;
+  document.getElementById('btnAddListekItem').onclick = addListekItem;
+  document.getElementById('btnAddListekTab').onclick  = addListekTab;
+  document.getElementById('btnRemoveListekTab').onclick = removeListekTab;
+  document.getElementById('btnAddPoukaz').onclick     = addPoukaz;
+  document.getElementById('btnAddHours').onclick      = addHoursRow;
+
+  // Today menu builder
+  document.getElementById('btnPublish').onclick       = publishToday;
+  document.getElementById('btnPrint').onclick         = printMenu;
+  document.getElementById('btnImage').onclick         = downloadMenuImage;
+  document.getElementById('btnAddSection').onclick    = () => { addSection(); };
+  document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; };
+  document.getElementById('todayNote').oninput  = e => { state.menuToday.note = e.target.value; };
+
+  // Database
+  document.getElementById('btnAddDish').onclick = e => { e.stopPropagation(); openDishModal(); };
+  document.getElementById('dbToggle').onclick   = () => document.getElementById('dbCard').classList.toggle('collapsed');
+  document.getElementById('dbSearch').oninput   = e => renderDishesDb(e.target.value);
+  document.getElementById('dmSave').onclick     = saveDishFromModal;
+  document.getElementById('dishModal').onclick  = e => { if (e.target.id === 'dishModal') closeDishModal(); };
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      closeDishModal();
+      closeAllAutocompletes();
+    }
+  });
+  // Click outside to close autocomplete
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.mb-name-wrap')) closeAllAutocompletes();
+  });
+}
+
+/* Migrace: starý menuToday.imageUrl → nech být, builder ho ignoruje.
+   Pokud existuje samostatný localStorage['kovarna_dishes'] (ze seed souboru)
+   a state.dishes je defaultní (30 jídel z baseline), neměníme nic. */
+function migrateData() {
+  state.menuToday = state.menuToday || {};
+  state.menuToday.sections = state.menuToday.sections || [];
+  state.dishes = state.dishes || [];
+  // Sezónní otevírací doba (08/2026): starší data měla jen state.hours
+  if (!state.hoursSeasons || !state.hoursSeasons.letni || !state.hoursSeasons.zimni) {
+    const base = JSON.parse(JSON.stringify(state.hours || []));
+    state.hoursSeasons = {
+      letni: (state.hoursSeasons && state.hoursSeasons.letni) || base,
+      zimni: (state.hoursSeasons && state.hoursSeasons.zimni) || JSON.parse(JSON.stringify(base))
+    };
+  }
+  if (state.hoursSeason !== 'letni' && state.hoursSeason !== 'zimni') state.hoursSeason = 'letni';
+  // Pokud někdo dříve spustil dishes-seed.html a state.dishes přesto nemá nic
+  if (!state.dishes.length) {
+    try {
+      const seed = JSON.parse(localStorage.getItem('kovarna_dishes') || 'null');
+      if (seed && Array.isArray(seed.dishes) && seed.dishes.length) {
+        state.dishes = seed.dishes;
+        saveData();
+        toast(`Naimportováno ${seed.dishes.length} jídel ze seed souboru`, 'success');
+      }
+    } catch {}
+  }
+}
+
+function setupTabs() {
+  document.querySelectorAll('.sb-tab').forEach(t => t.onclick = () => switchTab(t.dataset.tab));
+  document.getElementById('scrim').onclick = closeSidebar;
+}
+function switchTab(name) {
+  document.querySelectorAll('.sb-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel === name));
+  closeSidebar(); window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('scrim').classList.toggle('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('scrim').classList.remove('open'); }
+
+/* ════════════════════════════════════════════════════════════
+   DNEŠNÍ MENU — builder se sekcemi a autocomplete
+   ════════════════════════════════════════════════════════════ */
+
+const CAT_LABELS = {
+  polevka: 'Polévka', hlavni: 'Hlavní jídlo', bezmasa: 'Bezmasé', priloha: 'Příloha', dezert: 'Dezert', napoj: 'Nápoj'
+};
+const ALLERGEN_NAMES = {
+  1: 'lepek', 2: 'korýši', 3: 'vejce', 4: 'ryby', 5: 'arašídy', 6: 'sója', 7: 'mléko',
+  8: 'skořápkové plody', 9: 'celer', 10: 'hořčice', 11: 'sezam', 12: 'oxid siřičitý', 13: 'vlčí bob', 14: 'měkkýši'
+};
+
+function genId(prefix) { return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+function normalize(s) { return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+function getDish(id) { return state.dishes.find(d => d.id === id); }
+
+function renderToday() {
+  document.getElementById('todayDate').value = state.menuToday.date || new Date().toISOString().slice(0, 10);
+  document.getElementById('todayNote').value = state.menuToday.note || '';
+
+  // Pokud sekce ještě nejsou, nasaď výchozí kostru
+  if (!state.menuToday.sections || !state.menuToday.sections.length) {
+    state.menuToday.sections = [
+      { id: genId('sec'), title: 'Polévka', priceText: '55,- Kč', items: [] },
+      { id: genId('sec'), title: 'Hlavní jídla', priceText: '', items: [] },
+      { id: genId('sec'), title: 'Specialita týdne', priceText: '', items: [] },
+      { id: genId('sec'), title: 'Dezert dne', priceText: '', items: [] },
+    ];
+  }
+  renderBuilder();
+}
+
+function renderBuilder() {
+  const wrap = document.getElementById('mbWrap');
+  wrap.innerHTML = '';
+  state.menuToday.sections.forEach((sec, si) => {
+    wrap.appendChild(buildSectionEl(sec, si));
+  });
+}
+
+function buildSectionEl(sec, si) {
+  const el = document.createElement('div');
+  el.className = 'mb-section';
+  el.innerHTML = `
+    <div class="mb-section-head">
+      <input class="mb-section-title" value="${escapeAttr(sec.title)}" placeholder="Název sekce">
+      <input class="mb-section-price" value="${escapeAttr(sec.priceText || '')}" placeholder="55,- Kč" title="Společná cena pro celou sekci (volitelně)">
+      <button type="button" class="mb-section-rm" title="Smazat sekci">✕</button>
+    </div>
+    <div class="mb-items" data-items></div>
+    <div style="padding: 0 16px 14px;">
+      <button type="button" class="mb-add-item">+ Přidat jídlo</button>
+    </div>`;
+  const titleInp = el.querySelector('.mb-section-title');
+  const priceInp = el.querySelector('.mb-section-price');
+  titleInp.oninput = e => { state.menuToday.sections[si].title = e.target.value; };
+  priceInp.oninput = e => { state.menuToday.sections[si].priceText = e.target.value; };
+  el.querySelector('.mb-section-rm').onclick = () => removeSection(si);
+  el.querySelector('.mb-add-item').onclick = () => addItem(si);
+
+  const itemsWrap = el.querySelector('[data-items]');
+  sec.items.forEach((it, ii) => itemsWrap.appendChild(buildItemEl(si, ii, it)));
+  if (!sec.items.length) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'padding: 4px 2px 2px; color: var(--text-muted); font-size: 12.5px; font-style: italic;';
+    hint.textContent = 'Zatím žádné jídlo — klikněte „+ Přidat jídlo".';
+    itemsWrap.appendChild(hint);
+  }
+  return el;
+}
+
+function buildItemEl(si, ii, it) {
+  const dish = it.dishId ? getDish(it.dishId) : null;
+  const display = dish ? dish.name : (it.name || '');
+  const weight = (it.weight ?? (dish ? dish.weight : '')) || '';
+  const price = (it.price ?? (dish ? dish.price : '')) || '';
+  const allergens = it.allergens || (dish ? dish.allergens : []);
+
+  const row = document.createElement('div');
+  row.className = 'mb-item';
+  row.innerHTML = `
+    <input class="mb-item-weight" placeholder="200 g" value="${escapeAttr(weight)}">
+    <div class="mb-name-wrap">
+      <input class="mb-item-name${dish ? ' has-dish' : ''}" placeholder="Začněte psát název jídla…" value="${escapeAttr(display)}" autocomplete="off">
+      <div class="mb-item-meta">
+        ${allergens && allergens.length ? `<span class="mb-item-allergens-badge">A: ${allergens.join(', ')}</span>` : ''}
+      </div>
+      <div class="mb-autocomplete"></div>
+    </div>
+    <input class="mb-item-price" placeholder="0 Kč" value="${price !== '' ? price : ''}" inputmode="numeric">
+    <button type="button" class="mb-item-rm" title="Smazat řádek">✕</button>`;
+
+  const wInp = row.querySelector('.mb-item-weight');
+  const nInp = row.querySelector('.mb-item-name');
+  const pInp = row.querySelector('.mb-item-price');
+  const ac   = row.querySelector('.mb-autocomplete');
+  const meta = row.querySelector('.mb-item-meta');
+
+  wInp.oninput = e => { state.menuToday.sections[si].items[ii].weight = e.target.value; };
+  pInp.oninput = e => {
+    const v = e.target.value.trim();
+    const n = parseInt(v, 10);
+    state.menuToday.sections[si].items[ii].price = (v && !isNaN(n)) ? n : v;
+  };
+
+  nInp.oninput = () => {
+    const v = nInp.value;
+    // Pokud uživatel mění text po výběru z databáze → odpoj
+    if (it.dishId) {
+      state.menuToday.sections[si].items[ii].dishId = null;
+      state.menuToday.sections[si].items[ii].name = v;
+      nInp.classList.remove('has-dish');
+      meta.innerHTML = '';
+    } else {
+      state.menuToday.sections[si].items[ii].name = v;
+    }
+    openAutocomplete(nInp, ac, v, picked => applyDishPick(si, ii, picked, row));
+  };
+  nInp.onfocus = () => {
+    if (nInp.value.length >= 2 && !it.dishId) openAutocomplete(nInp, ac, nInp.value, picked => applyDishPick(si, ii, picked, row));
+  };
+  nInp.onkeydown = e => handleAutocompleteKey(e, ac);
+
+  row.querySelector('.mb-item-rm').onclick = () => removeItem(si, ii);
+  return row;
+}
+
+function applyDishPick(si, ii, dish, row) {
+  if (dish === '__create') {
+    const initialName = state.menuToday.sections[si].items[ii].name || '';
+    openDishModal(null, initialName, newDish => {
+      // Po vytvoření jídla v modalu — připoj ho na řádek
+      state.menuToday.sections[si].items[ii] = {
+        dishId: newDish.id, weight: undefined, price: undefined, allergens: undefined
+      };
+      renderBuilder();
+    });
+    return;
+  }
+  state.menuToday.sections[si].items[ii] = {
+    dishId: dish.id, weight: undefined, price: undefined, allergens: undefined
+  };
+  renderBuilder();
+}
+
+function addSection(title = '', priceText = '') {
+  state.menuToday.sections.push({ id: genId('sec'), title: title || 'Nová sekce', priceText, items: [] });
+  renderBuilder();
+}
+function removeSection(si) {
+  if (!confirm(`Smazat sekci „${state.menuToday.sections[si].title}" a všechny její položky?`)) return;
+  state.menuToday.sections.splice(si, 1);
+  renderBuilder();
+}
+function addItem(si) {
+  state.menuToday.sections[si].items.push({ dishId: null, name: '' });
+  renderBuilder();
+  // focus the new row's name input
+  setTimeout(() => {
+    const sectionEls = document.querySelectorAll('.mb-section');
+    const inputs = sectionEls[si]?.querySelectorAll('.mb-item-name');
+    inputs?.[inputs.length - 1]?.focus();
+  }, 50);
+}
+function removeItem(si, ii) {
+  state.menuToday.sections[si].items.splice(ii, 1);
+  renderBuilder();
+}
+
+/* ─── Autocomplete ─── */
+function openAutocomplete(input, ac, query, onPick) {
+  if (!query || query.length < 2) { ac.classList.remove('open'); ac.innerHTML = ''; return; }
+  const q = normalize(query);
+  const results = state.dishes
+    .map(d => ({ d, score: scoreDish(d, q) }))
+    .filter(x => x.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 10);
+
+  ac.innerHTML = '';
+  if (!results.length) {
+    const empty = document.createElement('div');
+    empty.className = 'mb-ac-empty';
+    empty.textContent = 'Žádné jídlo nenalezeno.';
+    ac.appendChild(empty);
+  } else {
+    results.forEach((r, i) => {
+      const it = document.createElement('div');
+      it.className = 'mb-ac-item' + (i === 0 ? ' active' : '');
+      const allergens = r.d.allergens?.length ? `<span class="mb-ac-allergens">A: ${r.d.allergens.join(', ')}</span>` : '';
+      it.innerHTML = `
+        <div class="mb-ac-name">${escapeHtml(r.d.name)}${r.d.desc ? `<small>${escapeHtml(r.d.desc)}</small>` : ''}</div>
+        ${allergens}
+        <div class="mb-ac-price">${r.d.price} Kč</div>`;
+      it.onmousedown = e => { e.preventDefault(); onPick(r.d); ac.classList.remove('open'); };
+      ac.appendChild(it);
+    });
+  }
+  const create = document.createElement('div');
+  create.className = 'mb-ac-item mb-ac-create';
+  create.innerHTML = `+ Přidat „${escapeHtml(query)}" jako nové jídlo`;
+  create.onmousedown = e => { e.preventDefault(); onPick('__create'); ac.classList.remove('open'); };
+  ac.appendChild(create);
+
+  ac.classList.add('open');
+}
+function scoreDish(d, q) {
+  const name = normalize(d.name), desc = normalize(d.desc || '');
+  if (name.startsWith(q)) return 100;
+  if (name.includes(' ' + q)) return 80;
+  if (name.includes(q)) return 60;
+  if (desc.includes(q)) return 20;
+  return 0;
+}
+function handleAutocompleteKey(e, ac) {
+  if (!ac.classList.contains('open')) return;
+  const items = ac.querySelectorAll('.mb-ac-item');
+  if (!items.length) return;
+  const activeIdx = [...items].findIndex(x => x.classList.contains('active'));
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    items[activeIdx]?.classList.remove('active');
+    items[Math.min(items.length - 1, activeIdx + 1)].classList.add('active');
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    items[activeIdx]?.classList.remove('active');
+    items[Math.max(0, activeIdx - 1)].classList.add('active');
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    items[activeIdx]?.dispatchEvent(new MouseEvent('mousedown'));
+  } else if (e.key === 'Escape') {
+    ac.classList.remove('open');
+  }
+}
+function closeAllAutocompletes() {
+  document.querySelectorAll('.mb-autocomplete.open').forEach(ac => ac.classList.remove('open'));
+}
+
+/* ─── Publikovat ─── */
+function publishToday() {
+  state.menuToday.date = document.getElementById('todayDate').value || null;
+  state.menuToday.note = document.getElementById('todayNote').value;
+  // Vyčistit prázdné řádky
+  state.menuToday.sections.forEach(sec => {
+    sec.items = sec.items.filter(it => it.dishId || (it.name && it.name.trim()));
+  });
+  if (saveData()) toast('Dnešní menu publikováno ✓', 'success');
+  renderBuilder();
+}
+
+/* ════════════════════════════════════════════════════════════
+   DATABÁZE JÍDEL — modal a tabulka
+   ════════════════════════════════════════════════════════════ */
+let editingDishId = null;
+let modalOnSave = null;
+
+function renderAllergenChips() {
+  const wrap = document.getElementById('dmAllergens');
+  wrap.innerHTML = '';
+  for (let i = 1; i <= 14; i++) {
+    const lbl = document.createElement('label');
+    lbl.className = 'allergen-chip';
+    lbl.innerHTML = `
+      <span class="allergen-chip-num">${i}</span>
+      <span>${ALLERGEN_NAMES[i]}</span>
+      <input type="checkbox" value="${i}">`;
+    const inp = lbl.querySelector('input');
+    inp.onchange = () => lbl.classList.toggle('checked', inp.checked);
+    wrap.appendChild(lbl);
+  }
+}
+
+function openDishModal(dishId, prefillName, onSave) {
+  editingDishId = dishId || null;
+  modalOnSave = onSave || null;
+  const dish = dishId ? getDish(dishId) : null;
+  document.getElementById('dishModalTitle').textContent = dish ? 'Upravit jídlo' : 'Přidat jídlo';
+  document.getElementById('dmName').value = dish?.name || prefillName || '';
+  document.getElementById('dmDesc').value = dish?.desc || '';
+  document.getElementById('dmWeight').value = dish?.weight || '';
+  document.getElementById('dmPrice').value = dish?.price ?? '';
+  document.getElementById('dmCategory').value = dish?.category || 'hlavni';
+  // Reset allergens
+  document.querySelectorAll('#dmAllergens .allergen-chip').forEach(chip => {
+    const inp = chip.querySelector('input');
+    const num = +inp.value;
+    inp.checked = dish?.allergens?.includes(num) || false;
+    chip.classList.toggle('checked', inp.checked);
+  });
+  const del = document.getElementById('dmDelete');
+  if (dish) {
+    del.style.display = 'inline-flex';
+    del.onclick = () => {
+      if (!confirm(`Smazat jídlo „${dish.name}" z databáze?`)) return;
+      state.dishes = state.dishes.filter(d => d.id !== dish.id);
+      // Z menuToday odstranit reference
+      state.menuToday.sections.forEach(sec => {
+        sec.items.forEach(it => { if (it.dishId === dish.id) { it.dishId = null; it.name = dish.name; } });
+      });
+      saveData(); renderDishesDb(); renderBuilder(); closeDishModal();
+      toast('Jídlo smazáno', 'success');
+    };
+  } else {
+    del.style.display = 'none';
+  }
+  document.getElementById('dishModal').classList.add('open');
+  setTimeout(() => document.getElementById('dmName').focus(), 50);
+}
+function closeDishModal() {
+  document.getElementById('dishModal').classList.remove('open');
+  editingDishId = null; modalOnSave = null;
+}
+function saveDishFromModal() {
+  const name = document.getElementById('dmName').value.trim();
+  const price = parseInt(document.getElementById('dmPrice').value, 10);
+  if (!name) return toast('Název je povinný', 'error');
+  if (isNaN(price) || price < 0) return toast('Cena musí být číslo', 'error');
+
+  const allergens = [...document.querySelectorAll('#dmAllergens input:checked')].map(i => +i.value).sort((a, b) => a - b);
+  const payload = {
+    name, price, allergens,
+    desc: document.getElementById('dmDesc').value.trim(),
+    weight: document.getElementById('dmWeight').value.trim(),
+    category: document.getElementById('dmCategory').value,
+  };
+
+  let savedDish;
+  if (editingDishId) {
+    const idx = state.dishes.findIndex(d => d.id === editingDishId);
+    if (idx >= 0) { state.dishes[idx] = { ...state.dishes[idx], ...payload }; savedDish = state.dishes[idx]; }
+  } else {
+    savedDish = { id: genId('dish'), ...payload };
+    state.dishes.push(savedDish);
+  }
+  saveData();
+  renderDishesDb();
+  renderBuilder();
+  toast(editingDishId ? 'Jídlo upraveno ✓' : 'Jídlo přidáno ✓', 'success');
+  const cb = modalOnSave;
+  closeDishModal();
+  if (cb && savedDish) cb(savedDish);
+}
+
+function renderDishesDb(filter) {
+  const tbl = document.getElementById('dbTable');
+  const q = normalize(filter || '');
+  const list = q
+    ? state.dishes.filter(d => normalize(d.name).includes(q) || normalize(d.desc || '').includes(q))
+    : state.dishes;
+
+  document.getElementById('dbCount').textContent = state.dishes.length;
+  tbl.innerHTML = `<thead><tr>
+    <th>Jídlo</th>
+    <th style="width: 100px;">Kategorie</th>
+    <th style="width: 90px;">Gramáž</th>
+    <th style="width: 140px;">Alergeny</th>
+    <th style="width: 80px; text-align: right;">Cena</th>
+    <th style="width: 70px;"></th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 32px 8px;">${q ? 'Žádné jídlo neodpovídá hledání.' : 'Databáze je prázdná — klikněte „+ Přidat jídlo".'}</td></tr>`;
+  } else {
+    list.forEach(d => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="db-name">${escapeHtml(d.name)}${d.desc ? `<small>${escapeHtml(d.desc)}</small>` : ''}</td>
+        <td><span class="db-cat-pill">${CAT_LABELS[d.category] || d.category}</span></td>
+        <td style="color: var(--text-muted);">${escapeHtml(d.weight || '—')}</td>
+        <td style="color: var(--text-muted); font-size: 12px;">${d.allergens?.length ? d.allergens.join(', ') : '—'}</td>
+        <td class="db-price">${d.price} Kč</td>
+        <td>
+          <div class="db-actions">
+            <button class="db-action-btn" data-edit="${d.id}" title="Upravit">✎</button>
+          </div>
+        </td>`;
+      tr.querySelector('[data-edit]').onclick = () => openDishModal(d.id);
+      tbody.appendChild(tr);
+    });
+  }
+  tbl.appendChild(tbody);
+}
+
+/* ════════════════════════════════════════════════════════════
+   EXPORT MENU — tisk (1× A4) a uložení jako obrázek (Facebook)
+   ════════════════════════════════════════════════════════════ */
+function collectMenuForExport() {
+  const date = state.menuToday.date || new Date().toISOString().slice(0, 10);
+  const dateFmt = new Date(date + 'T00:00:00').toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const sections = [];
+  state.menuToday.sections.forEach(sec => {
+    const items = sec.items
+      .filter(it => it.dishId || (it.name && it.name.trim()))
+      .map(it => {
+        const d = it.dishId ? getDish(it.dishId) : null;
+        return {
+          name:      (d ? d.name : (it.name || '')) || '',
+          desc:      (d ? d.desc : '') || '',
+          weight:    (it.weight ?? (d ? d.weight : '')) || '',
+          price:     it.price ?? (d ? d.price : ''),
+          allergens: (it.allergens ?? (d ? d.allergens : [])) || []
+        };
+      });
+    if (items.length) sections.push({ title: htmlDecode(sec.title || ''), priceText: sec.priceText || '', items });
+  });
+  return { date, dateFmt, sections, note: state.menuToday.note || '', phone: state.contact.phoneAlt || state.contact.phone || '' };
+}
+
+/* Tisk — kompaktní, aby se běžné denní menu vešlo na jednu A4.
+   Barvy záměrně tmavší (#444/#555) — světle šedá se na tiskárně ztrácela. */
+function printMenu() {
+  const { dateFmt, sections, note, phone } = collectMenuForExport();
+  if (!sections.length) return toast('Menu je prázdné — nejdřív přidejte jídla', 'error');
+
+  let html = `
+    <div style="text-align: center; padding-bottom: 10px; border-bottom: 1px solid #bbb;">
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
+      <div style="font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: 4px; color: #555; margin-top: 3px;">OD ROKU 1793</div>
+      <div style="font-family: 'Playfair Display', serif; font-style: italic; font-size: 17px; margin-top: 10px;">Menu dne — ${escapeHtml(dateFmt)}</div>
+    </div>`;
+
+  sections.forEach(sec => {
+    const secPrice = sec.priceText ? `<span style="font-weight: 600; color: #333; margin-left: 12px;">${escapeHtml(sec.priceText)}</span>` : '';
+    html += `<div class="print-section" style="margin-top: 12px;">
+      <div style="font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; margin-bottom: 4px;">${escapeHtml(sec.title)}${secPrice}</div>`;
+    sec.items.forEach(it => {
+      const hidePrice = !!sec.priceText;
+      html += `<div style="display: flex; align-items: baseline; gap: 9px; font-family: 'DM Sans', sans-serif; padding: 2.5px 0; font-size: 12.5px; color: #1a1a1a;">
+        <span style="min-width: 44px; color: #444; font-size: 10.5px;">${escapeHtml(it.weight)}</span>
+        <span style="flex: 1;">${escapeHtml(it.name)}${it.desc ? `<span style="color: #555; font-size: 11px;"> — ${escapeHtml(it.desc)}</span>` : ''}${it.allergens.length ? `<span style="color: #555; font-size: 10px; margin-left: 5px;">(${it.allergens.join(', ')})</span>` : ''}</span>
+        ${!hidePrice && it.price !== '' && it.price != null ? `<span style="font-weight: 600; min-width: 64px; text-align: right;">${it.price},- Kč</span>` : ''}
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  if (note) {
+    html += `<div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #bbb; text-align: center; font-style: italic; color: #333; font-size: 11.5px;">${escapeHtml(note)}</div>`;
+  }
+  html += `<div style="margin-top: 12px; text-align: center; font-size: 10px; color: #555; letter-spacing: .04em; font-family: 'DM Sans', sans-serif;">
+    Alergeny dle EU číslování 1–14 · Rezervace ${escapeHtml(phone)} · www.nakovarnemrakotin.cz
+  </div>`;
+
+  document.getElementById('printArea').innerHTML = html;
+  window.print();
+}
+
+/* Obrázek pro Facebook — nakreslí menu na canvas (1080 px šířka) a stáhne PNG */
+async function downloadMenuImage() {
+  const { date, dateFmt, sections, note, phone } = collectMenuForExport();
+  if (!sections.length) return toast('Menu je prázdné — nejdřív přidejte jídla', 'error');
+  try { await document.fonts.ready; } catch {}
+
+  const W = 1080, PAD = 72, SCALE = 2;
+  const INK = '#241C15', MUTED = '#5C5148', TEAL = '#2D7E7D', BG = '#FDFAF6', LINE = '#D8CFC2';
+  const serif  = w => `${w} "Playfair Display", Georgia, serif`;
+  const sans   = w => `${w} "DM Sans", -apple-system, sans-serif`;
+
+  // layout() projede obsah dvakrát — nejdřív spočítá výšku, pak kreslí
+  function layout(ctx, draw) {
+    let y = 96;
+    const text = (str, font, color, x, align = 'left') => {
+      if (!draw) return;
+      ctx.font = font; ctx.fillStyle = color; ctx.textAlign = align;
+      ctx.fillText(str, x, y);
+      ctx.textAlign = 'left';
+    };
+    const fit = (str, font, maxW) => {
+      ctx.font = font;
+      if (ctx.measureText(str).width <= maxW) return str;
+      let t = str;
+      while (t.length && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+      return t + '…';
+    };
+
+    text('Restaurace Na Kovárně Mrákotín', serif('500 46px'), INK, W / 2, 'center');
+    y += 34;
+    if (draw) { ctx.font = sans('600 15px'); ctx.fillStyle = MUTED; ctx.textAlign = 'center';
+      ctx.fillText('O D   R O K U   1 7 9 3', W / 2, y); ctx.textAlign = 'left'; }
+    y += 52;
+    text(`Menu dne — ${dateFmt}`, serif('italic 500 31px'), TEAL, W / 2, 'center');
+    y += 34;
+    if (draw) { ctx.strokeStyle = LINE; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(W - PAD, y); ctx.stroke(); }
+
+    sections.forEach(sec => {
+      y += 58;
+      text(sec.title, serif('600 30px'), TEAL, PAD);
+      if (sec.priceText) text(sec.priceText, sans('700 26px'), INK, W - PAD, 'right');
+      y += 16;
+
+      sec.items.forEach(it => {
+        y += 38;
+        text(it.weight, sans('400 18px'), MUTED, PAD);
+        const priceStr = (!sec.priceText && it.price !== '' && it.price != null) ? `${it.price},- Kč` : '';
+        const priceW = priceStr ? 130 : 0;
+        const allergStr = it.allergens.length ? ` (${it.allergens.join(', ')})` : '';
+        ctx.font = sans('500 23px');
+        const maxNameW = W - 2 * PAD - 92 - priceW - (allergStr ? ctx.measureText(allergStr).width : 0);
+        const nameFit = fit(it.name, sans('500 23px'), maxNameW);
+        text(nameFit, sans('500 23px'), INK, PAD + 92);
+        if (allergStr && draw) {
+          ctx.font = sans('500 23px');
+          const nw = ctx.measureText(nameFit).width;
+          ctx.font = sans('400 17px'); ctx.fillStyle = MUTED;
+          ctx.fillText(allergStr, PAD + 92 + nw + 4, y);
+        }
+        if (priceStr) text(priceStr, sans('700 23px'), TEAL, W - PAD, 'right');
+        if (it.desc) {
+          y += 28;
+          text(fit(it.desc, sans('400 19px'), W - 2 * PAD - 92 - priceW), sans('400 19px'), MUTED, PAD + 92);
+        }
+      });
+    });
+
+    if (note) {
+      y += 56;
+      if (draw) { ctx.strokeStyle = LINE; ctx.beginPath(); ctx.moveTo(PAD, y - 26); ctx.lineTo(W - PAD, y - 26); ctx.stroke(); }
+      text(fit(note, serif('italic 400 22px'), W - 2 * PAD), serif('italic 400 22px'), MUTED, W / 2, 'center');
+    }
+    y += 54;
+    text(`Alergeny dle EU číslování 1–14 · Rezervace ${phone} · www.nakovarnemrakotin.cz`,
+         sans('400 16px'), MUTED, W / 2, 'center');
+    y += 60;
+    return y;
+  }
+
+  const measure = document.createElement('canvas').getContext('2d');
+  const H = layout(measure, false);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W * SCALE; canvas.height = H * SCALE;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  // jemný rámeček ve stylu webu
+  ctx.strokeStyle = LINE; ctx.lineWidth = 2;
+  ctx.strokeRect(24, 24, W - 48, H - 48);
+  ctx.textBaseline = 'alphabetic';
+  layout(ctx, true);
+
+  canvas.toBlob(blob => {
+    if (!blob) return toast('Export obrázku selhal', 'error');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `menu-dne-${date}.png`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    toast('Obrázek menu stažen ✓ — můžete ho nahrát na Facebook', 'success');
+  }, 'image/png');
+}
+
+/* ════════════════════════════════════════════════════════════
+   JÍDELNÍ LÍSTEK
+   ════════════════════════════════════════════════════════════ */
+let activeListekIdx = 0;
+function renderListekEditor() {
+  if (activeListekIdx >= state.listekTabs.length) activeListekIdx = 0;
+  const bar = document.getElementById('listekTabBar');
+  bar.innerHTML = '';
+  state.listekTabs.forEach((t, i) => {
+    const b = document.createElement('button');
+    b.className = 'listek-tab-btn' + (i === activeListekIdx ? ' active' : '');
+    b.innerHTML = t.title;
+    b.onclick = () => { activeListekIdx = i; renderListekEditor(); };
+    bar.appendChild(b);
+  });
+  const cont = document.getElementById('listekTabContent');
+  cont.innerHTML = '';
+  const tab = state.listekTabs[activeListekIdx];
+  if (!tab) return;
+
+  // sekce title editor
+  const titleRow = document.createElement('div');
+  titleRow.style.marginBottom = '14px';
+  titleRow.innerHTML = `<label class="field"><span>Název této sekce</span><input class="input" id="listekSecTitle" value="${escapeAttr(htmlDecode(tab.title))}"></label>`;
+  cont.appendChild(titleRow);
+  setTimeout(() => {
+    document.getElementById('listekSecTitle').oninput = e => { state.listekTabs[activeListekIdx].title = e.target.value; };
+  }, 0);
+
+  // items
+  tab.items.forEach((it, ii) => cont.appendChild(buildListekRow(activeListekIdx, ii, it)));
+}
+function buildListekRow(si, ii, it) {
+  const row = document.createElement('div');
+  row.className = 'li-row';
+  if (it._special) {
+    row.innerHTML = `<input class="li-name" placeholder="Štítek (např. Každý pracovní den)" value="${escapeAttr(it.label || '')}">
+      <input class="li-desc" placeholder="Popis" value="${escapeAttr(it.strong || '')}">
+      <input class="li-price" placeholder="Cena (text)" value="${escapeAttr(it.priceText || '')}">
+      <button class="btn btn--danger btn--small li-rm">✕</button>`;
+    row.querySelector('.li-name').oninput  = e => state.listekTabs[si].items[ii].label = e.target.value;
+    row.querySelector('.li-desc').oninput  = e => state.listekTabs[si].items[ii].strong = e.target.value;
+    row.querySelector('.li-price').oninput = e => state.listekTabs[si].items[ii].priceText = e.target.value;
+  } else {
+    row.classList.add('li-row-full');
+    const allergStr = Array.isArray(it.allergens) ? it.allergens.join(',') : '';
+    row.innerHTML = `<input class="li-weight" placeholder="Gramáž" value="${escapeAttr(it.weight || '')}" title="Gramáž (např. 200 g)">
+      <input class="li-name" placeholder="Název" value="${escapeAttr(it.name || '')}">
+      <input class="li-desc" placeholder="Popis (přílohy)" value="${escapeAttr(it.desc || '')}">
+      <input class="li-allerg" placeholder="Alerg. 1,3,7" value="${escapeAttr(allergStr)}" title="Čísla alergenů oddělená čárkou (1–14)">
+      <input class="li-price" placeholder="Cena" value="${it.price ?? ''}">
+      <button class="btn btn--danger btn--small li-rm">✕</button>`;
+    row.querySelector('.li-weight').oninput = e => state.listekTabs[si].items[ii].weight = e.target.value;
+    row.querySelector('.li-name').oninput  = e => state.listekTabs[si].items[ii].name = e.target.value;
+    row.querySelector('.li-desc').oninput  = e => state.listekTabs[si].items[ii].desc = e.target.value;
+    row.querySelector('.li-allerg').oninput = e => {
+      state.listekTabs[si].items[ii].allergens = e.target.value
+        .split(/[,;\s]+/).map(x => parseInt(x, 10)).filter(n => n >= 1 && n <= 14);
+    };
+    row.querySelector('.li-price').oninput = e => {
+      const v = e.target.value.trim();
+      const n = +v;
+      state.listekTabs[si].items[ii].price = (v && !isNaN(n)) ? n : v;
+    };
+  }
+  row.querySelector('.li-rm').onclick = () => { state.listekTabs[si].items.splice(ii, 1); renderListekEditor(); };
+  return row;
+}
+function addListekItem() {
+  state.listekTabs[activeListekIdx].items.push({ weight: '', name: '', desc: '', price: 0, allergens: [] });
+  renderListekEditor();
+}
+function addListekTab() {
+  const t = prompt('Název nové sekce (např. Pivo, Vína, Nápoje):');
+  if (!t) return;
+  const id = t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'sekce-' + Date.now();
+  state.listekTabs.push({ id, title: t.trim(), items: [] });
+  activeListekIdx = state.listekTabs.length - 1;
+  renderListekEditor();
+}
+function removeListekTab() {
+  if (state.listekTabs.length <= 1) return toast('Musí zůstat alespoň jedna sekce', 'error');
+  if (!confirm(`Smazat sekci „${htmlDecode(state.listekTabs[activeListekIdx].title)}"?`)) return;
+  state.listekTabs.splice(activeListekIdx, 1);
+  activeListekIdx = 0;
+  renderListekEditor();
+}
+function saveListek() { saveData(); toast('Jídelní lístek uložen', 'success'); }
+
+/* ════════════════════════════════════════════════════════════
+   O RESTAURACI (texty)
+   ════════════════════════════════════════════════════════════ */
+function renderAboutEditor() {
+  document.getElementById('aHeroSub').value = state.hero.subtitle || '';
+  document.getElementById('aP1').value = state.about?.p1 || '';
+  document.getElementById('aP2').value = state.about?.p2 || '';
+}
+function saveAbout() {
+  state.hero.subtitle = document.getElementById('aHeroSub').value.trim();
+  state.about = state.about || {};
+  state.about.p1 = document.getElementById('aP1').value.trim();
+  state.about.p2 = document.getElementById('aP2').value.trim();
+  saveData();
+  toast('Texty uloženy', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════
+   AKCE & CATERING
+   ════════════════════════════════════════════════════════════ */
+function renderAkceEditor() {
+  const wrap = document.getElementById('akceEditor');
+  wrap.innerHTML = '';
+  (state.akce || []).forEach((a, i) => {
+    const card = document.createElement('div');
+    card.className = 'akce-edit-card';
+    card.innerHTML = `
+      <div class="row row-3" style="grid-template-columns: 70px 1fr 1fr;">
+        <label class="field"><span>Ikona (emoji)</span><input class="input akce-icon-input" maxlength="2" value="${escapeAttr(a.icon)}"></label>
+        <label class="field"><span>Název</span><input class="input" value="${escapeAttr(htmlDecode(a.title || ''))}"></label>
+        <label class="field"><span>Krátký štítek (vpravo dole)</span><input class="input" value="${escapeAttr(htmlDecode(a.tag || ''))}"></label>
+      </div>
+      <label class="field" style="margin-top:10px;">
+        <span>Popis</span>
+        <textarea class="textarea" rows="2">${escapeHtml(a.text || '')}</textarea>
+      </label>`;
+    const [iIcon, iTitle, iTag] = card.querySelectorAll('.row .input');
+    const iText = card.querySelector('textarea');
+    iIcon.oninput  = e => state.akce[i].icon  = e.target.value;
+    iTitle.oninput = e => state.akce[i].title = e.target.value;
+    iTag.oninput   = e => state.akce[i].tag   = e.target.value;
+    iText.oninput  = e => state.akce[i].text  = e.target.value;
+    wrap.appendChild(card);
+  });
+}
+function saveAkce() { saveData(); toast('Akce uloženy', 'success'); }
+
+/* ════════════════════════════════════════════════════════════
+   POUKAZY
+   ════════════════════════════════════════════════════════════ */
+function renderPoukazyEditor() {
+  document.getElementById('poukazyIntro').value = state.poukazy?.intro || '';
+  const list = document.getElementById('poukazyList');
+  list.innerHTML = '';
+  (state.poukazy?.items || []).forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'li-row';
+    row.style.gridTemplateColumns = '1fr 1.4fr 100px auto';
+    row.innerHTML = `
+      <input placeholder="Štítek (např. Dárkový poukaz)" value="${escapeAttr(p.label || '')}">
+      <input placeholder="Popis (např. Příjemná večeře)" value="${escapeAttr(p.strong || '')}">
+      <input type="number" placeholder="Kč" value="${p.amount || 0}">
+      <button class="btn btn--danger btn--small">✕</button>`;
+    const [iLabel, iStrong, iAmt, btn] = row.children;
+    iLabel.oninput  = e => state.poukazy.items[i].label  = e.target.value;
+    iStrong.oninput = e => state.poukazy.items[i].strong = e.target.value;
+    iAmt.oninput    = e => state.poukazy.items[i].amount = +e.target.value || 0;
+    btn.onclick = () => { state.poukazy.items.splice(i, 1); renderPoukazyEditor(); };
+    list.appendChild(row);
+  });
+}
+function addPoukaz() {
+  state.poukazy = state.poukazy || { intro: '', items: [] };
+  state.poukazy.items.push({ label: 'Dárkový poukaz', strong: '', amount: 0 });
+  renderPoukazyEditor();
+}
+function savePoukazy() {
+  state.poukazy.intro = document.getElementById('poukazyIntro').value.trim();
+  saveData(); toast('Poukázky uloženy', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════
+   GALERIE
+   ════════════════════════════════════════════════════════════ */
+function renderGalleryEditor() {
+  const grid = document.getElementById('galGrid');
+  grid.innerHTML = '';
+  (state.gallery || []).forEach((g, i) => {
+    const tile = document.createElement('div');
+    tile.className = 'gal-tile';
+    tile.innerHTML = `
+      <img src="${g.src}" alt="${escapeAttr(g.caption || '')}">
+      <div class="gal-meta">
+        <input placeholder="Popisek" value="${escapeAttr(g.caption || '')}">
+        <div class="gal-actions">
+          <button class="btn btn--ghost btn--small" data-act="up" title="Nahoru">↑</button>
+          <button class="btn btn--ghost btn--small" data-act="down" title="Dolů">↓</button>
+          <button class="btn btn--danger btn--small" data-act="rm" title="Smazat">✕</button>
+        </div>
+      </div>`;
+    const inp = tile.querySelector('input');
+    inp.oninput = e => state.gallery[i].caption = e.target.value;
+    tile.querySelector('[data-act="up"]').onclick   = () => moveGal(i, -1);
+    tile.querySelector('[data-act="down"]').onclick = () => moveGal(i, 1);
+    tile.querySelector('[data-act="rm"]').onclick   = () => { if (confirm('Smazat fotku?')) { state.gallery.splice(i,1); renderGalleryEditor(); } };
+    grid.appendChild(tile);
+  });
+
+  // Add tile
+  const add = document.createElement('label');
+  add.className = 'gal-add';
+  add.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+    Přidat fotku
+    <input type="file" accept="image/*">`;
+  add.querySelector('input').onchange = handleGalleryUpload;
+  grid.appendChild(add);
+}
+function moveGal(i, dir) {
+  const j = i + dir;
+  if (j < 0 || j >= state.gallery.length) return;
+  [state.gallery[i], state.gallery[j]] = [state.gallery[j], state.gallery[i]];
+  renderGalleryEditor();
+}
+async function handleGalleryUpload(e) {
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > 20 * 1024 * 1024) { toast('Foto je moc velké (max 20 MB před kompresí)', 'error'); return; }
+  toast('Zpracovávám foto…');
+  try {
+    const { dataUrl, sizeKb } = await compressImage(f, 1600, 0.85);
+    state.gallery.push({ src: dataUrl, caption: '' });
+    if (saveData()) {
+      renderGalleryEditor();
+      toast(`Foto přidáno (${sizeKb} KB) ✓`, 'success');
+    } else {
+      state.gallery.pop();
+    }
+  } catch (err) {
+    toast('Chyba: ' + err.message, 'error');
+  } finally {
+    e.target.value = '';
+  }
+}
+function saveGallery() { saveData(); toast('Galerie uložena', 'success'); }
+
+/* ════════════════════════════════════════════════════════════
+   KONTAKTY + HODINY
+   ════════════════════════════════════════════════════════════ */
+let editingSeason = 'letni';   // kterou sadu hodin právě edituju (nezávislé na tom, co je na webu)
+function renderContactEditor() {
+  document.getElementById('cPhone').value    = state.contact.phone;
+  document.getElementById('cPhoneAlt').value = state.contact.phoneAlt;
+  document.getElementById('cEmail').value    = state.contact.email;
+  document.getElementById('cFb').value       = state.contact.facebook;
+  document.getElementById('cAddr1').value    = state.contact.addressLine1;
+  document.getElementById('cAddr2').value    = state.contact.addressLine2;
+  document.getElementById('hoursNote').value = state.hoursNote || '';
+  editingSeason = state.hoursSeason || 'letni';
+  document.querySelectorAll('#seasonTabBar [data-season]').forEach(b => {
+    b.onclick = () => { editingSeason = b.dataset.season; renderHoursRows(); };
+  });
+  document.querySelectorAll('input[name="activeSeason"]').forEach(r => {
+    r.checked = r.value === state.hoursSeason;
+    r.onchange = () => { if (r.checked) state.hoursSeason = r.value; };
+  });
+  renderHoursRows();
+}
+function renderHoursRows() {
+  document.querySelectorAll('#seasonTabBar [data-season]').forEach(b =>
+    b.classList.toggle('active', b.dataset.season === editingSeason));
+  const list = state.hoursSeasons[editingSeason];
+  const wrap = document.getElementById('hoursRows');
+  wrap.innerHTML = '';
+  list.forEach((h, i) => {
+    const row = document.createElement('div');
+    row.className = 'hours-row';
+    row.innerHTML = `<input value="${escapeAttr(h.day)}" placeholder="Dny">
+      <input value="${escapeAttr(h.time)}" placeholder="Čas">
+      <button class="btn btn--danger btn--small">✕</button>`;
+    const [d, t, btn] = row.children;
+    d.oninput = e => list[i].day = e.target.value;
+    t.oninput = e => list[i].time = e.target.value;
+    btn.onclick = () => { list.splice(i, 1); renderHoursRows(); };
+    wrap.appendChild(row);
+  });
+}
+function addHoursRow() { state.hoursSeasons[editingSeason].push({ day: '', time: '', match: [] }); renderHoursRows(); }
+function saveContact() {
+  state.contact.phone        = document.getElementById('cPhone').value.trim();
+  state.contact.phoneAlt     = document.getElementById('cPhoneAlt').value.trim();
+  state.contact.email        = document.getElementById('cEmail').value.trim();
+  state.contact.facebook     = document.getElementById('cFb').value.trim();
+  state.contact.addressLine1 = document.getElementById('cAddr1').value.trim();
+  state.contact.addressLine2 = document.getElementById('cAddr2').value.trim();
+  state.hoursNote            = document.getElementById('hoursNote').value.trim();
+  // legacy pole state.hours drží aktivní sadu (kompatibilita se zálohami / starým webem)
+  state.hours = JSON.parse(JSON.stringify(state.hoursSeasons[state.hoursSeason] || []));
+  saveData();
+  toast('Kontakty uloženy', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════
+   Settings — backup
+   ════════════════════════════════════════════════════════════ */
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `kovarna-zaloha-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  toast('Záloha stažena', 'success');
+}
+function importData(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data || typeof data !== 'object') throw new Error('špatný formát');
+      state = deepMerge(JSON.parse(JSON.stringify(DEFAULT_DATA)), data);
+      saveData();
+      toast('Záloha obnovena. Přenačítám…', 'success');
+      setTimeout(() => location.reload(), 800);
+    } catch { toast('Chyba: nelze načíst', 'error'); }
+  };
+  reader.readAsText(f);
+  e.target.value = '';
+}
+
+/* ────── helpers ────── */
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+function escapeAttr(s) { return escapeHtml(s); }
+function htmlDecode(s) {
+  // Decode HTML entities (&amp; → &) — pro inputs aby se v editoru nezobrazoval encodovaný text
+  const txt = document.createElement('textarea'); txt.innerHTML = s ?? ''; return txt.value;
+}
+
+function toast(msg, type) {
+  const w = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  w.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateX(40px)'; }, 3200);
+  setTimeout(() => t.remove(), 3600);
+}
+
+/* ─── Auto-unlock při aktivní session (musí být až po všech deklaracích) ─── */
+if (isUnlocked()) unlock();
+else { document.getElementById('pinScreen').style.display='flex'; pinInput.focus(); }
+</script>
+</body>
+</html>

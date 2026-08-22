@@ -1,0 +1,8 @@
+# Whitelist: do repa jde JEN web (index, admin, obrázky bez originálů).
+# Smlouvy, nabídky a interní soubory NIKDY nesmí do veřejného repa.
+/*
+!/.gitignore
+!/index.html
+!/menu-admin.html
+!/img
+img/originals/
