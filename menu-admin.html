@@ -877,8 +877,8 @@ label.field > span {
         <div class="card-head"><div><h2>Kontakty</h2></div></div>
         <div class="card-body">
           <div class="row row-2">
-            <label class="field"><span>Telefon (hlavní)</span><input class="input" id="cPhone" placeholder="774 458 062"></label>
-            <label class="field"><span>Telefon (pevná)</span><input class="input" id="cPhoneAlt" placeholder="567 317 569"></label>
+            <label class="field"><span>Telefon (hlavní — pevná linka, rezervace)</span><input class="input" id="cPhone" placeholder="567 317 569"></label>
+            <label class="field"><span>Telefon (druhý — mobil)</span><input class="input" id="cPhoneAlt" placeholder="774 458 062"></label>
           </div>
           <div class="row row-2" style="margin-top:14px;">
             <label class="field"><span>Email <em style="font-weight:400;text-transform:none;letter-spacing:0;">(nepovinné — prázdný se na webu nezobrazí)</em></span><input class="input" id="cEmail" placeholder="Nechat prázdné = bez e-mailu na webu"></label>
@@ -1211,7 +1211,7 @@ const DEFAULT_DATA = {
   version: 2,
   menuVersion: 3,
   contact: {
-    phone: '774 458 062', phoneAlt: '567 317 569',
+    phone: '567 317 569', phoneAlt: '774 458 062',   // pevná = hlavní pro rezervace, mobil doplňkově
     email: '',   // klient nechce e-mail na webu — když je prázdný, web ho nikde nezobrazí
     addressLine1: 'Mrákotín 50', addressLine2: '588 54 Mrákotín',
     facebook: 'https://www.facebook.com/Restaurace-Na-Kov%C3%A1rn%C4%9B-139931546656584',
@@ -1249,19 +1249,23 @@ const DEFAULT_DATA = {
   menuToday: MENU_TODAY_SEED,
   dishes: DISHES_SEED,
   listekTabs: LISTEK_SEED,
-  galleryVersion: 3,
+  galleryVersion: 4,
   gallery: [
-    { src: 'img/sal-siroky.webp',           caption: 'Sál připravený na oslavu' },
-    { src: 'img/oslavy-hrnecky.webp',       caption: 'Hrnečky Na Kovárně 1793' },
-    { src: 'img/bar.jpg',                   caption: 'Tradiční bar a výčep' },
-    { src: 'img/sal-tabule.webp',           caption: 'Slavnostní tabule' },
-    { src: 'img/interier-dvere.webp',       caption: 'Pohled do sálu' },
-    { src: 'img/oslavy-zakusky.webp',       caption: 'Sladké pohoštění' },
-    { src: 'img/detail-balon.webp',         caption: 'Balón pod trámy' },
-    { src: 'img/oslavy-zakusky-detail.webp',caption: 'Zákusky na slavnostní tabuli' },
-    { src: 'img/interier-obraz.webp',       caption: 'Zákoutí salónku' },
-    { src: 'img/oslavy-tabule-bok.webp',    caption: 'Prostřeno pro hosty' },
-    { src: 'img/vstup.jpg',                 caption: 'Vstupní hala' }
+    // Interiér
+    { src: 'img/bar.jpg',                   caption: 'Tradiční bar a výčep',        cat: 'Interiér' },
+    { src: 'img/interier-dvere.webp',       caption: 'Pohled do sálu',              cat: 'Interiér' },
+    { src: 'img/interier-obraz.webp',       caption: 'Zákoutí salónku',             cat: 'Interiér' },
+    { src: 'img/oslavy-hrnecky.webp',       caption: 'Hrnečky Na Kovárně 1793',     cat: 'Interiér' },
+    // Slavnostní tabule
+    { src: 'img/sal-siroky.webp',           caption: 'Sál připravený na oslavu',    cat: 'Slavnostní tabule' },
+    { src: 'img/sal-tabule.webp',           caption: 'Slavnostní tabule',           cat: 'Slavnostní tabule' },
+    { src: 'img/oslavy-tabule-bok.webp',    caption: 'Prostřeno pro hosty',         cat: 'Slavnostní tabule' },
+    { src: 'img/sal-kvetiny.webp',          caption: 'Květinová výzdoba',           cat: 'Slavnostní tabule' },
+    { src: 'img/detail-balon.webp',         caption: 'Balón pod trámy',             cat: 'Slavnostní tabule' },
+    // Pohoštění
+    { src: 'img/oslavy-zakusky.webp',       caption: 'Sladké pohoštění',            cat: 'Pohoštění' },
+    { src: 'img/oslavy-zakusky-detail.webp',caption: 'Zákusky na slavnostní tabuli',cat: 'Pohoštění' },
+    { src: 'img/oslavy-zakusky-talir.webp', caption: 'Výběr zákusků',               cat: 'Pohoštění' }
   ],
   akce: [
     { icon: '🎂', title: 'Rodinné oslavy',
@@ -2330,16 +2334,21 @@ function savePoukazy() {
 /* ════════════════════════════════════════════════════════════
    GALERIE
    ════════════════════════════════════════════════════════════ */
+const GALLERY_CATS = ['Interiér', 'Slavnostní tabule', 'Pohoštění'];
 function renderGalleryEditor() {
   const grid = document.getElementById('galGrid');
   grid.innerHTML = '';
   (state.gallery || []).forEach((g, i) => {
     const tile = document.createElement('div');
     tile.className = 'gal-tile';
+    const catOpts = ['<option value="">— bez kategorie —</option>']
+      .concat(GALLERY_CATS.map(c => `<option value="${escapeAttr(c)}"${g.cat === c ? ' selected' : ''}>${escapeHtml(c)}</option>`))
+      .join('');
     tile.innerHTML = `
       <img src="${g.src}" alt="${escapeAttr(g.caption || '')}">
       <div class="gal-meta">
         <input placeholder="Popisek" value="${escapeAttr(g.caption || '')}">
+        <select class="input" data-act="cat" title="Kategorie na webu">${catOpts}</select>
         <div class="gal-actions">
           <button class="btn btn--ghost btn--small" data-act="up" title="Nahoru">↑</button>
           <button class="btn btn--ghost btn--small" data-act="down" title="Dolů">↓</button>
@@ -2348,6 +2357,10 @@ function renderGalleryEditor() {
       </div>`;
     const inp = tile.querySelector('input');
     inp.oninput = e => state.gallery[i].caption = e.target.value;
+    tile.querySelector('[data-act="cat"]').onchange = e => {
+      if (e.target.value) state.gallery[i].cat = e.target.value;
+      else delete state.gallery[i].cat;
+    };
     tile.querySelector('[data-act="up"]').onclick   = () => moveGal(i, -1);
     tile.querySelector('[data-act="down"]').onclick = () => moveGal(i, 1);
     tile.querySelector('[data-act="rm"]').onclick   = () => { if (confirm('Smazat fotku?')) { state.gallery.splice(i,1); renderGalleryEditor(); } };
