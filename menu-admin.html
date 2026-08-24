@@ -2046,7 +2046,27 @@ function printMenu() {
     Alergeny dle EU číslování 1–14 · Rezervace ${escapeHtml(phone)} · www.nakovarnemrakotin.cz
   </div>`;
 
-  document.getElementById('printArea').innerHTML = html;
+  const area = document.getElementById('printArea');
+  area.innerHTML = html;
+
+  /* Adaptivní velikost: kratší menu se zvětší, aby hezky vyplnilo A4.
+     Tisková plocha: 277 × 182 mm (A4 minus okraje 10/14 mm) ≈ 1047 × 688 px (96 dpi).
+     Měříme v dočasně zobrazeném stavu s tiskovou šířkou; zoom pak škáluje
+     písmo i rozestupy, šířka zůstává v rámci stránky. */
+  const mm = 3.7795, pageW = 182 * mm, pageH = 277 * mm;
+  const measure = w => {
+    area.style.cssText = 'display:block; position:absolute; left:-9999px; top:0; width:' + Math.round(w) + 'px; zoom:1;';
+    return area.scrollHeight || 1;
+  };
+  let zoom = Math.min(1.5, Math.max(1, (pageH / measure(pageW)) * 0.97));
+  // při zoomu se text láme na užší šířce → přeměřit a případně stáhnout
+  for (let i = 0; i < 2; i++) {
+    const h = measure(pageW / zoom);
+    zoom = Math.min(zoom, Math.max(1, (pageH / h) * 0.97));
+  }
+  area.style.cssText = '';           // zpět na CSS (na obrazovce skrytý, v tisku block)
+  area.style.zoom = zoom;
+
   window.print();
 }
 
