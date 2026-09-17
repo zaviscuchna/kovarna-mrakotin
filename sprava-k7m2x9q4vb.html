@@ -2166,9 +2166,14 @@ function printMenu() {
     html += `</div>`;
   });
 
-  html += `<div style="margin-top: 16px; padding-top: 10px; border-top: 1px solid #bbb; text-align: center;">
-      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
-      <div style="font-family: 'DM Sans', sans-serif; font-size: 9.5px; letter-spacing: 4px; color: #555; margin-top: 3px;">OD ROKU 1793</div>
+  /* Rozměry loga jsou napevno — bez nich by se výška měřila dřív, než se
+     obrázek načte, a menu by pak přeteklo na druhou stranu. Zdroj má jen
+     258 px, takže větší než ~150 px by v tisku měklo. */
+  html += `<div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #bbb; text-align: center;">
+      <img src="img/logo.png" width="150" height="69" alt=""
+           style="display: block; margin: 0 auto 10px;">
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
+      <div style="font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 5px; color: #555; margin-top: 5px;">OD ROKU 1793</div>
     </div>`;
 
   const area = document.getElementById('printArea');
