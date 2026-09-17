@@ -2174,7 +2174,7 @@ function printMenu() {
   const area = document.getElementById('printArea');
   // Zoom sedí na vnitřním obalu, ne na #printArea — jinak by škáloval
   // i tiskové odsazení a obsah by přetekl mimo stránku.
-  area.innerHTML = '<div id="printZoom">' + html + '</div>';
+  area.innerHTML = '<div id="printZoom" style="font-family:\'Playfair Display\', Georgia, serif;">' + html + '</div>';
   const zoomEl = document.getElementById('printZoom');
 
   /* Adaptivní velikost: kratší menu se zvětší, aby hezky vyplnilo A4.
@@ -2189,11 +2189,11 @@ function printMenu() {
     zoomEl.style.zoom = 1;
     return zoomEl.scrollHeight || 1;
   };
-  let zoom = Math.min(1.5, Math.max(MIN_ZOOM, (pageH / measure(pageW)) * 0.97));
+  let zoom = Math.min(1.5, Math.max(MIN_ZOOM, (pageH / measure(pageW)) * 0.94));
   // při zoomu se text láme na užší šířce → přeměřit a případně stáhnout
   for (let i = 0; i < 2; i++) {
     const h = measure(pageW / zoom);
-    zoom = Math.min(zoom, Math.max(MIN_ZOOM, (pageH / h) * 0.97));
+    zoom = Math.min(zoom, Math.max(MIN_ZOOM, (pageH / h) * 0.94));
   }
   area.style.cssText = '';           // zpět na CSS (na obrazovce skrytý, v tisku block)
   zoomEl.style.zoom = zoom;
