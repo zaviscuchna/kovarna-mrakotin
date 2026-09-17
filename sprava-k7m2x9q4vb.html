@@ -471,7 +471,10 @@ label.field > span {
      sám prohlížeč (datum, název karty, URL, číslo stránky). Odsazení si proto
      dělá #printArea sám. */
   @page { size: A4; margin: 0; }
-  #printArea { padding: 12mm 14mm; }
+  /* Horní okraj je záměrně velký: menu se zakládá do desek a sponka
+     zakryje horní pruh papíru. Změna čísla tady musí jít ruku v ruce
+     s PAD_TOP v printMenu(), jinak zvětšení přeteče ze stránky. */
+  #printArea { padding: 30mm 14mm 12mm; }
 }
 
 /* ─── Listek editor ─────────────────── */
@@ -2197,7 +2200,11 @@ async function printMenu() {
      písmo i rozestupy, šířka zůstává v rámci stránky. */
   // Dlouhé menu se smí i zmenšit, aby zůstalo na jedné A4; krátké se roztáhne.
   const MIN_ZOOM = 0.8, MAX_ZOOM = 1.5, FILL = 0.97;
-  const mm = 3.7795, pageW = 182 * mm, pageH = 273 * mm;
+  // Musí sedět s paddingem #printArea v tiskovém CSS (A4 = 210 × 297 mm).
+  const PAD_TOP = 30, PAD_X = 14, PAD_BOTTOM = 12;
+  const mm = 3.7795;
+  const pageW = (210 - 2 * PAD_X) * mm;
+  const pageH = (297 - PAD_TOP - PAD_BOTTOM) * mm;
   const measure = w => {
     area.style.cssText = 'display:block; position:absolute; left:-9999px; top:0; width:' + Math.round(w) + 'px; padding:0;';
     zoomEl.style.zoom = 1;
