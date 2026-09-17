@@ -2141,7 +2141,7 @@ function collectMenuForExport() {
 
 /* Tisk — kompaktní, aby se běžné denní menu vešlo na jednu A4.
    Barvy záměrně tmavší (#444/#555) — světle šedá se na tiskárně ztrácela. */
-function printMenu() {
+async function printMenu() {
   const { dateFmt, sections, note, phone } = collectMenuForExport();
   if (!sections.length) return toast('Menu je prázdné — nejdřív přidejte jídla', 'error');
 
@@ -2171,6 +2171,7 @@ function printMenu() {
      258 px, takže větší než ~150 px by v tisku měklo. */
   html += `<div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #bbb; text-align: center;">
       <img src="img/logo.png" width="150" height="69" alt=""
+           onerror="this.style.display='none'"
            style="display: block; margin: 0 auto 10px;">
       <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
       <div style="font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 5px; color: #555; margin-top: 5px;">OD ROKU 1793</div>
@@ -2181,6 +2182,14 @@ function printMenu() {
   // i tiskové odsazení a obsah by přetekl mimo stránku.
   area.innerHTML = '<div id="printZoom" style="font-family:\'Playfair Display\', Georgia, serif;">' + html + '</div>';
   const zoomEl = document.getElementById('printZoom');
+
+  /* Počkat na logo. Bez toho se window.print() zavolá dřív, než se obrázek
+     načte, a v tisku zůstane prázdný rámeček. Rozměry má nastavené napevno,
+     takže měření výšky níž je správné i předtím, než obrázek dorazí. */
+  await Promise.all([...area.querySelectorAll('img')].map(img =>
+    img.complete ? Promise.resolve()
+                 : new Promise(res => { img.onload = img.onerror = res; })
+  ));
 
   /* Adaptivní velikost: kratší menu se zvětší, aby hezky vyplnilo A4.
      Tisková plocha: 277 × 182 mm (A4 minus okraje 10/14 mm) ≈ 1047 × 688 px (96 dpi).
