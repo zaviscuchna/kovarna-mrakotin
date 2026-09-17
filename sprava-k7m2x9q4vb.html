@@ -467,7 +467,11 @@ label.field > span {
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   #printArea .print-section { break-inside: avoid; page-break-inside: avoid; }
-  @page { size: A4; margin: 10mm 14mm; }
+  /* Nulový okraj stránky schová hlavičku a patičku, kterou do okrajů kreslí
+     sám prohlížeč (datum, název karty, URL, číslo stránky). Odsazení si proto
+     dělá #printArea sám. */
+  @page { size: A4; margin: 0; }
+  #printArea { padding: 12mm 14mm; }
 }
 
 /* ─── Listek editor ─────────────────── */
@@ -2130,7 +2134,9 @@ function collectMenuForExport() {
       });
     if (items.length) sections.push({ title: htmlDecode(sec.title || ''), priceText: sec.priceText || '', items });
   });
-  return { date, dateFmt, sections, note: state.menuToday.note || '', phone: state.contact.phoneAlt || state.contact.phone || '' };
+  // Rezervace vedou na pevnou linku (mobil je až druhý kontakt) — v tisku
+  // i v obrázku na Facebook se dřív objevoval mobil a odporoval poznámce pod menu.
+  return { date, dateFmt, sections, note: state.menuToday.note || '', phone: state.contact.phone || state.contact.phoneAlt || '' };
 }
 
 /* Tisk — kompaktní, aby se běžné denní menu vešlo na jednu A4.
@@ -2140,45 +2146,46 @@ function printMenu() {
   if (!sections.length) return toast('Menu je prázdné — nejdřív přidejte jídla', 'error');
 
   let html = `
-    <div style="text-align: center; padding-bottom: 10px; border-bottom: 1px solid #bbb;">
-      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 24px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
-      <div style="font-family: 'DM Sans', sans-serif; font-size: 10px; letter-spacing: 4px; color: #555; margin-top: 3px;">OD ROKU 1793</div>
-      <div style="font-family: 'Playfair Display', serif; font-style: italic; font-size: 17px; margin-top: 10px;">Menu dne — ${escapeHtml(dateFmt)}</div>
+    <div style="text-align: center; padding-bottom: 11px; border-bottom: 1px solid #bbb;">
+      <div style="font-family: 'Playfair Display', serif; font-style: italic; font-size: 22px;">Menu dne — ${escapeHtml(dateFmt)}</div>
+      ${note ? `<div style="font-family: 'DM Sans', sans-serif; font-size: 12px; color: #333; margin-top: 7px;">${escapeHtml(note)}</div>` : ''}
     </div>`;
 
   sections.forEach(sec => {
     const secPrice = sec.priceText ? `<span style="font-weight: 600; color: #333; margin-left: 12px;">${escapeHtml(sec.priceText)}</span>` : '';
     html += `<div class="print-section" style="margin-top: 12px;">
-      <div style="font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; margin-bottom: 4px;">${escapeHtml(sec.title)}${secPrice}</div>`;
+      <div style="font-family: 'Playfair Display', serif; font-size: 16.5px; font-weight: 600; margin-bottom: 5px;">${escapeHtml(sec.title)}${secPrice}</div>`;
     sec.items.forEach(it => {
       const hidePrice = !!sec.priceText;
-      html += `<div style="display: flex; align-items: baseline; gap: 9px; font-family: 'DM Sans', sans-serif; padding: 2.5px 0; font-size: 12.5px; color: #1a1a1a;">
-        <span style="min-width: 44px; color: #444; font-size: 10.5px;">${escapeHtml(it.weight)}</span>
-        <span style="flex: 1;">${escapeHtml(it.name)}${it.desc ? `<span style="color: #555; font-size: 11px;"> — ${escapeHtml(it.desc)}</span>` : ''}${it.allergens.length ? `<span style="color: #555; font-size: 10px; margin-left: 5px;">(${it.allergens.join(', ')})</span>` : ''}</span>
+      html += `<div style="display: flex; align-items: baseline; gap: 9px; font-family: 'DM Sans', sans-serif; padding: 3px 0; font-size: 13.5px; color: #1a1a1a;">
+        <span style="min-width: 46px; color: #444; font-size: 11px;">${escapeHtml(it.weight)}</span>
+        <span style="flex: 1;">${escapeHtml(it.name)}${it.desc ? `<span style="color: #555; font-size: 11.5px;"> — ${escapeHtml(it.desc)}</span>` : ''}${it.allergens.length ? `<span style="color: #555; font-size: 10.5px; margin-left: 5px;">(${it.allergens.join(', ')})</span>` : ''}</span>
         ${!hidePrice && it.price !== '' && it.price != null ? `<span style="font-weight: 600; min-width: 64px; text-align: right;">${it.price},- Kč</span>` : ''}
       </div>`;
     });
     html += `</div>`;
   });
 
-  if (note) {
-    html += `<div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #bbb; text-align: center; font-style: italic; color: #333; font-size: 11.5px;">${escapeHtml(note)}</div>`;
-  }
-  html += `<div style="margin-top: 12px; text-align: center; font-size: 10px; color: #555; letter-spacing: .04em; font-family: 'DM Sans', sans-serif;">
-    Alergeny dle EU číslování 1–14 · Rezervace ${escapeHtml(phone)} · www.nakovarnemrakotin.cz
-  </div>`;
+  html += `<div style="margin-top: 16px; padding-top: 10px; border-top: 1px solid #bbb; text-align: center;">
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
+      <div style="font-family: 'DM Sans', sans-serif; font-size: 9.5px; letter-spacing: 4px; color: #555; margin-top: 3px;">OD ROKU 1793</div>
+    </div>`;
 
   const area = document.getElementById('printArea');
-  area.innerHTML = html;
+  // Zoom sedí na vnitřním obalu, ne na #printArea — jinak by škáloval
+  // i tiskové odsazení a obsah by přetekl mimo stránku.
+  area.innerHTML = '<div id="printZoom">' + html + '</div>';
+  const zoomEl = document.getElementById('printZoom');
 
   /* Adaptivní velikost: kratší menu se zvětší, aby hezky vyplnilo A4.
      Tisková plocha: 277 × 182 mm (A4 minus okraje 10/14 mm) ≈ 1047 × 688 px (96 dpi).
      Měříme v dočasně zobrazeném stavu s tiskovou šířkou; zoom pak škáluje
      písmo i rozestupy, šířka zůstává v rámci stránky. */
-  const mm = 3.7795, pageW = 182 * mm, pageH = 277 * mm;
+  const mm = 3.7795, pageW = 182 * mm, pageH = 273 * mm;
   const measure = w => {
-    area.style.cssText = 'display:block; position:absolute; left:-9999px; top:0; width:' + Math.round(w) + 'px; zoom:1;';
-    return area.scrollHeight || 1;
+    area.style.cssText = 'display:block; position:absolute; left:-9999px; top:0; width:' + Math.round(w) + 'px; padding:0;';
+    zoomEl.style.zoom = 1;
+    return zoomEl.scrollHeight || 1;
   };
   let zoom = Math.min(1.5, Math.max(1, (pageH / measure(pageW)) * 0.97));
   // při zoomu se text láme na užší šířce → přeměřit a případně stáhnout
@@ -2187,7 +2194,7 @@ function printMenu() {
     zoom = Math.min(zoom, Math.max(1, (pageH / h) * 0.97));
   }
   area.style.cssText = '';           // zpět na CSS (na obrazovce skrytý, v tisku block)
-  area.style.zoom = zoom;
+  zoomEl.style.zoom = zoom;
 
   window.print();
 }
