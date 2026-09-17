@@ -2,13 +2,23 @@
   "name": "Kovárna — správa webu",
   "short_name": "Kovárna admin",
   "description": "Denní menu a obsah webu Restaurace Na Kovárně Mrákotín",
-  "start_url": "/menu-admin.html",
-  "scope": "/menu-admin.html",
+  "start_url": "/sprava-k7m2x9q4vb.html",
+  "scope": "/sprava-k7m2x9q4vb.html",
   "display": "standalone",
   "background_color": "#12110D",
   "theme_color": "#12110D",
   "icons": [
-    { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    {
+      "src": "/img/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }
