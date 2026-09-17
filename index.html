@@ -489,6 +489,11 @@ section.padded { padding: var(--section-pad) 0; }
   z-index: 2;
   opacity: .9;
 }
+/* Na úzkém displeji pečeť naráží do ceny první sekce. Je dekorativní,
+   takže radši zmizí, než aby překrývala cenu, kterou host čte. */
+@media (max-width: 720px) {
+  .denni-menu-card .corner-stamp { display: none; }
+}
 .denni-menu-image-frame {
   position: relative;
   background: var(--teal-pale);
