@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Na Kovárně">
+  <rect width="64" height="64" fill="#12110D"/>
+  <path d="M40.68 21.1 A 13.8 15.7 0 1 1 23.32 21.1"
+        fill="none" stroke="#E4C77E" stroke-width="6.9"/>
+  <g fill="#12110D">
+    <circle cx="40.96" cy="27.17" r="1.15"/>
+    <circle cx="42.00" cy="36.47" r="1.15"/>
+    <circle cx="37.94" cy="43.33" r="1.15"/>
+    <circle cx="26.06" cy="43.33" r="1.15"/>
+    <circle cx="22.00" cy="36.47" r="1.15"/>
+    <circle cx="23.04" cy="27.17" r="1.15"/>
+  </g>
+</svg>

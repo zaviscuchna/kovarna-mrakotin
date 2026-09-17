@@ -5,6 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Restaurace Na Kovárně Mrákotín — tradiční česká kuchyně, denní menu, oslavy a catering pro 15–100 osob. V srdci Vysočiny od roku 1793.">
 <title>Restaurace Na Kovárně Mrákotín — Tradiční česká kuchyně od roku 1793</title>
+<link rel="canonical" href="https://www.nakovarnemrakotin.cz/">
+<meta name="theme-color" content="#2D7E7D">
+<meta name="robots" content="index, follow">
+
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="img/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+
+<meta property="og:type" content="restaurant">
+<meta property="og:locale" content="cs_CZ">
+<meta property="og:site_name" content="Restaurace Na Kovárně Mrákotín">
+<meta property="og:title" content="Restaurace Na Kovárně Mrákotín">
+<meta property="og:description" content="Tradiční česká kuchyně v srdci Vysočiny. Polední menu, oslavy a catering pro 15–100 osob. Rezervace na 567 317 569.">
+<meta property="og:url" content="https://www.nakovarnemrakotin.cz/">
+<meta property="og:image" content="https://www.nakovarnemrakotin.cz/img/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Slavnostně prostřený sál restaurace Na Kovárně Mrákotín">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Restaurace Na Kovárně Mrákotín">
+<meta name="twitter:description" content="Tradiční česká kuchyně v srdci Vysočiny. Polední menu, oslavy a catering pro 15–100 osob.">
+<meta name="twitter:image" content="https://www.nakovarnemrakotin.cz/img/og-image.jpg">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Restaurant",
+  "name": "Restaurace Na Kovárně Mrákotín",
+  "url": "https://www.nakovarnemrakotin.cz/",
+  "image": "https://www.nakovarnemrakotin.cz/img/og-image.jpg",
+  "logo": "https://www.nakovarnemrakotin.cz/img/logo.png",
+  "telephone": "+420567317569",
+  "servesCuisine": "Česká kuchyně",
+  "priceRange": "$$",
+  "currenciesAccepted": "CZK",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Mrákotín 50",
+    "addressLocality": "Mrákotín",
+    "postalCode": "588 54",
+    "addressRegion": "Kraj Vysočina",
+    "addressCountry": "CZ"
+  },
+  "sameAs": ["https://www.facebook.com/Restaurace-Na-Kov%C3%A1rn%C4%9B-139931546656584"],
+  "openingHoursSpecification": [
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday"], "opens": "11:00", "closes": "21:00" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Friday", "opens": "11:00", "closes": "23:00" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Saturday", "opens": "11:00", "closes": "22:00" },
+    { "@type": "OpeningHoursSpecification", "dayOfWeek": "Sunday", "opens": "11:00", "closes": "21:00" }
+  ]
+}
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -1083,7 +1136,7 @@ footer {
 <nav class="main-nav" id="mainNav">
   <div class="nav-inner">
     <a href="#" class="nav-logo" aria-label="Domů">
-      <img src="https://www.nakovarnemrakotin.cz/image.php?nid=12065&oid=3206464"
+      <img src="img/logo.png"
            alt="Logo Restaurace Na Kovárně" class="logo-img"
            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
       <svg class="logo-svg" viewBox="0 0 80 80" fill="none" style="display:none;">
@@ -1389,7 +1442,7 @@ footer {
   <div class="footer-inner">
     <div class="footer-brand">
       <div class="footer-logo">
-        <img src="https://www.nakovarnemrakotin.cz/image.php?nid=12065&oid=3206464" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <img src="img/logo.png" alt="Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
         <svg viewBox="0 0 80 80" fill="none" style="display:none;">
           <circle cx="40" cy="40" r="36" stroke="#7ECFCE" stroke-width="1.5"/>
           <text font-family="Playfair Display, serif" font-size="13" fill="#7ECFCE" text-anchor="middle" x="40" y="46" font-style="italic">1793</text>
@@ -1410,7 +1463,7 @@ footer {
     </div>
   </div>
   <div class="footer-bottom">
-    <p>© 2026 V.K.V. 1793, s.r.o. — Všechna práva vyhrazena</p>
+    <p>© <span id="footerYear">2026</span> V.K.V. 1793, s.r.o. — Všechna práva vyhrazena</p>
     <p class="footer-ksh">Web vytvořilo <span>KSH studio</span></p>
   </div>
 </footer>
@@ -1716,11 +1769,22 @@ function renderHero() {
     }
   }
 
+  const yearEl = document.getElementById('footerYear');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
+
   setHref('footerFb', DATA.contact.facebook);
   setHref('footerPhone', `tel:+420${phone}`);
   document.getElementById('footerPhone').textContent = DATA.contact.phone;
-  setHref('footerPhoneAlt', `tel:+420${phoneAlt}`);
-  document.getElementById('footerPhoneAlt').textContent = DATA.contact.phoneAlt;
+  const footerAlt = document.getElementById('footerPhoneAlt');
+  if (footerAlt) {
+    if (phoneAlt) {
+      footerAlt.href = `tel:+420${phoneAlt}`;
+      footerAlt.textContent = DATA.contact.phoneAlt;
+      footerAlt.style.display = '';
+    } else {
+      footerAlt.style.display = 'none';
+    }
+  }
 
   // about texts
   setText('aboutP1', DATA.about?.p1);
@@ -1735,19 +1799,29 @@ function formatCzDate(iso) {
   const d = iso ? new Date(iso) : new Date();
   return `${DAYS_CZ[d.getDay()]} · ${d.getDate()}. ${MONTHS_CZ[d.getMonth()]} ${d.getFullYear()}`;
 }
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function renderTodayMenu() {
+  // Menu dne platí jen pro dnešek a dál. Včerejší (nebo nedatované) menu nikdy
+  // nevydáváme za dnešní nabídku — radši ukážeme „menu se připravuje".
+  const menuDate = DATA.menuToday?.date || null;
+  const isCurrent = !!menuDate && menuDate >= todayIso();
+
   const dateEl = document.getElementById('menuDate');
-  if (dateEl) dateEl.textContent = formatCzDate(DATA.menuToday?.date);
+  if (dateEl) dateEl.textContent = formatCzDate(isCurrent ? menuDate : null);
 
   const frame = document.getElementById('menuImageFrame');
   // Rezervace k dennímu menu jdou na pevnou linku (stejně jako na tištěném jídelníčku)
-  const phoneStr = DATA.contact.phoneAlt || DATA.contact.phone;
+  const phoneStr = DATA.contact.phone || DATA.contact.phoneAlt;
   const phone = phoneStr.replace(/\s/g, '');
   document.getElementById('menuFootPhone').textContent = '+420 ' + phoneStr;
 
   // Má builder nějaké jídlo s reálným obsahem?
   const sections = DATA.menuToday?.sections || [];
-  const hasContent = sections.some(sec =>
+  const hasContent = isCurrent && sections.some(sec =>
     (sec.items || []).some(it => it.dishId || (it.name && String(it.name).trim()))
   );
 
@@ -1759,8 +1833,8 @@ function renderTodayMenu() {
     return;
   }
 
-  // 2) Legacy: nahraný JPG
-  if (DATA.menuToday?.imageUrl) {
+  // 2) Legacy: nahraný JPG (rovněž jen pokud je menu aktuální)
+  if (isCurrent && DATA.menuToday?.imageUrl) {
     frame.style.background = '';
     frame.style.minHeight = '';
     frame.innerHTML = `<img src="${DATA.menuToday.imageUrl}" alt="Dnešní denní menu">`;
@@ -1997,8 +2071,8 @@ function renderContact() {
 
   const kd = document.getElementById('kontaktDetails');
   if (kd) {
-    const phoneClean    = c.phone.replace(/\s/g, '');
-    const phoneAltClean = c.phoneAlt.replace(/\s/g, '');
+    const phoneClean    = (c.phone || '').replace(/\s/g, '');
+    const phoneAltClean = (c.phoneAlt || '').replace(/\s/g, '');
     const mapQ = encodeURIComponent(`${c.addressLine1}, ${c.addressLine2}`);
     kd.innerHTML = `
       <div class="kontakt-detail">
@@ -2013,7 +2087,7 @@ function renderContact() {
         <div class="kontakt-detail-icon">📞</div>
         <div class="kontakt-detail-text">
           <span>Telefon</span>
-          <a href="tel:+420${phoneClean}">${escapeHtml(c.phone)}</a> &nbsp;/&nbsp; <a href="tel:+420${phoneAltClean}">${escapeHtml(c.phoneAlt)}</a>
+          <a href="tel:+420${phoneClean}">${escapeHtml(c.phone)}</a>${phoneAltClean ? ` &nbsp;/&nbsp; <a href="tel:+420${phoneAltClean}">${escapeHtml(c.phoneAlt)}</a>` : ''}
         </div>
       </div>
       ${(c.email || '').trim() ? `<div class="kontakt-detail">
