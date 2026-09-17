@@ -152,6 +152,20 @@ main.content { padding: 36px 44px; max-width: 1080px; flex: 1 1 auto; min-width:
 .card-head .desc { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 .card-body { padding: 22px; }
 
+/* Stav menu dne — říká pravdu o tom, co je právě vidět na webu */
+.menu-live-status {
+  margin-top: 14px; padding: 12px 14px; border-radius: 10px;
+  font-size: 13.5px; line-height: 1.5; display: none;
+}
+.menu-live-status.show { display: block; }
+.menu-live-status.live {
+  background: #E8F6EE; color: #1E6B42; border: 1px solid #B7E0C7;
+}
+.menu-live-status.hidden-on-web {
+  background: #FDF3E3; color: #8A5A12; border: 1px solid #F0D9AE;
+}
+.menu-live-status strong { font-weight: 600; }
+
 .row { display: grid; gap: 16px; }
 .row-2 { grid-template-columns: 1fr 1fr; }
 .row-3 { grid-template-columns: 1fr 1fr 1fr; }
@@ -698,6 +712,7 @@ label.field > span {
             <span>Datum menu</span>
             <input type="date" class="input" id="todayDate" style="max-width:240px;">
           </label>
+          <div id="menuLiveStatus" class="menu-live-status"></div>
         </div>
       </div>
 
@@ -1541,7 +1556,7 @@ function initApp() {
   document.getElementById('btnPrint').onclick         = printMenu;
   document.getElementById('btnImage').onclick         = downloadMenuImage;
   document.getElementById('btnAddSection').onclick    = () => { addSection(); };
-  document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; };
+  document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; renderLiveStatus(); };
   document.getElementById('todayNote').oninput  = e => { state.menuToday.note = e.target.value; };
 
   // Database
@@ -1635,12 +1650,53 @@ function renderToday() {
   renderBuilder();
 }
 
+/* Web ukáže menu dne jen když je datované na dnešek nebo později.
+   Admin proto musí říct, jestli je to, co vidím, skutečně venku. */
+function todayIso() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function renderLiveStatus() {
+  const el = document.getElementById('menuLiveStatus');
+  if (!el) return;
+
+  const hasContent = (state.menuToday.sections || []).some(sec =>
+    (sec.items || []).some(it => it.dishId || (it.name && String(it.name).trim()))
+  );
+  if (!hasContent) { el.className = 'menu-live-status'; el.innerHTML = ''; return; }
+
+  // Datum bereme z pole, ne ze state — uživatel ho mohl právě přepsat a ještě nepublikovat.
+  const picked = document.getElementById('todayDate').value || null;
+  const saved  = state.menuToday.date || null;
+  const live   = !!saved && saved >= todayIso();
+
+  el.className = 'menu-live-status show ' + (live ? 'live' : 'hidden-on-web');
+  if (live) {
+    const zmena = picked && picked !== saved;
+    el.innerHTML = '✓ <strong>Menu je na webu vidět</strong> (platí na ' + fmtCz(saved) + ').'
+      + (zmena ? ' Změnili jste datum — uložte tlačítkem <strong>Publikovat</strong>.' : '');
+  } else {
+    el.innerHTML = '⚠️ <strong>Toto menu na webu není vidět.</strong> '
+      + (saved ? 'Je datované na ' + fmtCz(saved) + ', což už je pryč. '
+               : 'Nemá nastavené datum. ')
+      + 'Zkontrolujte datum výše a klikněte na <strong>Publikovat</strong> — pak se objeví. '
+      + 'Návštěvníci zatím vidí „Menu se připravuje".';
+  }
+}
+
+function fmtCz(iso) {
+  const [y, m, d] = iso.split('-');
+  return `${+d}. ${+m}. ${y}`;
+}
+
 function renderBuilder() {
   const wrap = document.getElementById('mbWrap');
   wrap.innerHTML = '';
   state.menuToday.sections.forEach((sec, si) => {
     wrap.appendChild(buildSectionEl(sec, si));
   });
+  renderLiveStatus();
 }
 
 function buildSectionEl(sec, si) {
