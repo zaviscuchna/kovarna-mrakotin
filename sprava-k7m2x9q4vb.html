@@ -626,10 +626,16 @@ label.field > span {
     </svg>
     <div class="pin-title">Správa webu</div>
     <div class="pin-sub">Restaurace Na Kovárně Mrákotín</div>
-    <input type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4"
-           class="pin-input" id="pinInput" placeholder="••••" autocomplete="off">
-    <div class="pin-error" id="pinError"></div>
-    <div class="pin-hint">Zadejte 4-místný PIN</div>
+    <form id="loginForm" autocomplete="on">
+      <input type="text" name="username" value="admin@nakovarnemrakotin.cz"
+             autocomplete="username" style="display:none" readonly>
+      <input type="password" class="pin-input" id="pinInput" placeholder="Heslo"
+             autocomplete="current-password" style="letter-spacing:normal;">
+      <div class="pin-error" id="pinError"></div>
+      <button type="submit" class="btn btn--primary" id="loginBtn"
+              style="width:100%;margin-top:12px;">Přihlásit se</button>
+    </form>
+    <div class="pin-hint">Heslo si tento počítač zapamatuje.</div>
   </div>
 </div>
 
@@ -950,13 +956,14 @@ label.field > span {
       </div>
 
       <div class="card">
-        <div class="card-head"><div><h2>Změnit PIN</h2></div></div>
+        <div class="card-head"><div><h2>Změnit heslo</h2></div></div>
         <div class="card-body">
           <div class="row row-2">
-            <label class="field"><span>Nový PIN</span><input class="input" id="newPin" maxlength="4" inputmode="numeric"></label>
-            <label class="field"><span>Potvrdit</span><input class="input" id="newPin2" maxlength="4" inputmode="numeric"></label>
+            <label class="field"><span>Nové heslo</span><input class="input" type="password" id="newPin" autocomplete="new-password"></label>
+            <label class="field"><span>Potvrdit</span><input class="input" type="password" id="newPin2" autocomplete="new-password"></label>
           </div>
-          <button class="btn btn--primary" style="margin-top:14px;" onclick="changePin()">Změnit PIN</button>
+          <div class="desc" style="margin-top:8px;">Nejméně 8 znaků. Po změně se budete příště přihlašovat novým heslem — na všech zařízeních.</div>
+          <button class="btn btn--primary" style="margin-top:14px;" onclick="changePin()">Změnit heslo</button>
         </div>
       </div>
 
@@ -1103,10 +1110,8 @@ label.field > span {
    CONFIG (zrcadlí index.html)
    ════════════════════════════════════════════════════════════ */
 const STORAGE_KEY = 'kovarna_data';
-const PIN_KEY = 'kovarna_admin_pin';
 const SESSION_KEY = 'kovarna_admin_session';
 const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const DEFAULT_PIN = '1793';
 
 /* ─── SEED: reálné jídelníčky od klienta (08/2026) ───
    Zdroj: JIDELNI LISTEK Kovarna 1.1.2026 + Denní menu 18.8. + Menu víkend 16.8.
@@ -1355,6 +1360,7 @@ const PB_URL = location.hostname.endsWith('nakovarnemrakotin.cz')
   ? 'https://pb.nakovarnemrakotin.cz'
   : 'http://kovarna-pb.46.225.180.130.sslip.io';
 const PB_EMAIL = 'admin@nakovarnemrakotin.cz';
+const PB_USER_ID = 'q3dsc8v2z2hifmi';
 const PB_PASS_KEY = 'kovarna_pb_pass';
 let pbToken = null, pbRecordId = null, pbPushTimer = null;
 
@@ -1488,9 +1494,7 @@ function compressImage(file, maxWidth = 1600, quality = 0.88) {
   });
 }
 
-/* ─── PIN + Session ─── */
-function getPin() { return localStorage.getItem(PIN_KEY) || DEFAULT_PIN; }
-function setPin(p) { localStorage.setItem(PIN_KEY, p); }
+/* ─── Session ─── */
 function isUnlocked() {
   try {
     const s = JSON.parse(sessionStorage.getItem(SESSION_KEY) || 'null');
@@ -1506,28 +1510,83 @@ function unlock() {
 }
 function adminLogout() { sessionStorage.removeItem(SESSION_KEY); location.reload(); }
 
-const pinInput = document.getElementById('pinInput');
-const pinError = document.getElementById('pinError');
-pinInput.addEventListener('input', e => {
-  pinError.textContent = ''; pinInput.classList.remove('error');
-  const v = e.target.value.replace(/\D/g,'');
-  if (v !== e.target.value) e.target.value = v;
-  if (v.length === 4) {
-    if (v === getPin()) unlock();
-    else { pinError.textContent = 'Chybný PIN'; pinInput.classList.add('error'); setTimeout(() => { pinInput.value=''; pinInput.focus(); }, 600); }
+/* Přihlášení = ověření hesla proti serveru (PocketBase).
+   Dřív tu byl 4-místný PIN, ale ten se kontroloval jen v prohlížeči — kdokoli
+   si mohl zobrazit zdroj stránky a obejít ho. Skutečnou zábranou bylo vždycky
+   až heslo k databázi, takže se teď přihlašuje rovnou jím. */
+const pinInput  = document.getElementById('pinInput');
+const pinError  = document.getElementById('pinError');
+const loginForm = document.getElementById('loginForm');
+const loginBtn  = document.getElementById('loginBtn');
+
+loginForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const pass = pinInput.value;
+  if (!pass) return;
+
+  pinError.textContent = '';
+  pinInput.classList.remove('error');
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Ověřuji…';
+
+  const fail = msg => {
+    pinError.textContent = msg;
+    pinInput.classList.add('error');
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Přihlásit se';
+    pinInput.select();
+  };
+
+  try {
+    await pbAuth(pass);                        // ověří server
+    localStorage.setItem(PB_PASS_KEY, pass);   // zapamatuje na tomto zařízení
+    unlock();
+  } catch (err) {
+    // Rozlišit chybné heslo od nedostupného serveru — při výpadku serveru
+    // nesmí zůstat klient zamčený venku, když se už dřív přihlásil.
+    const serverDown = err && err.name === 'TypeError';
+    if (serverDown && pass === localStorage.getItem(PB_PASS_KEY)) {
+      unlock();
+      setTimeout(() => pbStatus('offline'), 500);
+    } else if (serverDown) {
+      fail('Server je nedostupný. Zkuste to prosím za chvíli.');
+    } else {
+      fail('Chybné heslo');
+    }
   }
 });
 /* Pozn.: kontrola aktivní session (auto-unlock) je až na KONCI skriptu —
    unlock() volá initApp(), který potřebuje už inicializované `let` proměnné níže. */
 
-function changePin() {
+/* Mění skutečné heslo na serveru, ne jen zámek v prohlížeči. */
+async function changePin() {
   const a = document.getElementById('newPin').value;
   const b = document.getElementById('newPin2').value;
-  if (!/^\d{4}$/.test(a)) return toast('PIN musí být 4 čísla', 'error');
-  if (a !== b) return toast('PIN se neshoduje', 'error');
-  setPin(a);
-  document.getElementById('newPin').value = ''; document.getElementById('newPin2').value = '';
-  toast('PIN změněn', 'success');
+  const stare = localStorage.getItem(PB_PASS_KEY);
+
+  if (a.length < 8)  return toast('Heslo musí mít aspoň 8 znaků', 'error');
+  if (a !== b)       return toast('Hesla se neshodují', 'error');
+  if (!stare)        return toast('Nejste přihlášeni k serveru', 'error');
+  if (a === stare)   return toast('Nové heslo je stejné jako staré', 'error');
+
+  try {
+    const res = await fetch(PB_URL + '/api/collections/users/records/' + PB_USER_ID, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Authorization': pbToken },
+      body: JSON.stringify({ oldPassword: stare, password: a, passwordConfirm: b })
+    });
+    if (!res.ok) throw new Error(await res.text());
+
+    // Po změně hesla server zneplatní token — přihlásit se znovu tím novým.
+    await pbAuth(a);
+    localStorage.setItem(PB_PASS_KEY, a);
+    document.getElementById('newPin').value = '';
+    document.getElementById('newPin2').value = '';
+    toast('Heslo změněno ✓', 'success');
+  } catch (e) {
+    console.warn('changePassword', e);
+    toast('Heslo se nepodařilo změnit', 'error');
+  }
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -2584,8 +2643,20 @@ function toast(msg, type) {
 }
 
 /* ─── Auto-unlock při aktivní session (musí být až po všech deklaracích) ─── */
-if (isUnlocked()) unlock();
-else { document.getElementById('pinScreen').style.display='flex'; pinInput.focus(); }
+if (isUnlocked()) {
+  unlock();
+} else {
+  document.getElementById('pinScreen').style.display = 'flex';
+  // Na zařízení, které se už jednou přihlásilo, heslo předvyplníme —
+  // majiteli pak stačí kliknout na Přihlásit se.
+  const zapamatovane = localStorage.getItem(PB_PASS_KEY);
+  if (zapamatovane) {
+    pinInput.value = zapamatovane;
+    loginBtn.focus();
+  } else {
+    pinInput.focus();
+  }
+}
 </script>
 </body>
 </html>
