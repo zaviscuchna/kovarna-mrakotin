@@ -161,8 +161,9 @@ nav.main-nav .nav-inner { position: relative; z-index: 1; }
 
 nav.main-nav.scrolled {
   /* Bez backdrop-filter: přes celou šířku se překresloval při každém snímku
-     scrollu, a pod krémovým pozadím na 97 % stejně nebyl vidět. */
-  background: rgba(246,242,235,0.97);
+     scrollu. Plně krycí pozadí — s průsvitem, ale bez rozostření, prosvítal
+     pod lištou ostrý text a působilo to jako chyba vykreslení. */
+  background: var(--cream);
   padding: .65rem 0;
   box-shadow: 0 1px 0 rgba(76,170,168,.12), 0 4px 22px rgba(0,0,0,.04);
 }
