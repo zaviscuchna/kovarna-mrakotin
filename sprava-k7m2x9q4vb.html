@@ -1401,6 +1401,21 @@ function deepMerge(base, over) {
   return out;
 }
 /* Merge uložených dat s výchozími + verze migrace (společné pro localStorage i server) */
+/* Rozepsané menu v builderu (state.menuToday) NENÍ to, co je na webu.
+   Na web jde až state.menuPublished, který se přepíše jedině tlačítkem
+   Publikovat. Bez toho oddělení stačilo uložit cokoli jinde v adminu
+   (galerii, jídlo, lístek) a rozepsané menu se okamžitě objevilo na webu. */
+function menuSnapshot(m) {
+  m = m || {};
+  return JSON.parse(JSON.stringify({
+    date:     m.date ?? null,
+    title:    m.title || 'Menu dne',
+    note:     m.note || '',
+    imageUrl: m.imageUrl ?? null,
+    sections: m.sections || []
+  }));
+}
+
 function mergeSaved(saved) {
   // Fotky v2 (08/2026): starší uloženou galerii zahodíme, ať se použije nová výchozí
   if ((saved.galleryVersion || 1) < DEFAULT_DATA.galleryVersion) delete saved.gallery;
@@ -1409,7 +1424,11 @@ function mergeSaved(saved) {
     delete saved.dishes; delete saved.listekTabs; delete saved.menuToday; delete saved.akce;
     if (saved.contact && saved.contact.email === 'ing.vesely@outlook.com') saved.contact.email = '';
   }
-  return deepMerge(JSON.parse(JSON.stringify(DEFAULT_DATA)), saved);
+  const out = deepMerge(JSON.parse(JSON.stringify(DEFAULT_DATA)), saved);
+  // Data ze serveru publikovanou verzi nenesou — první načtení ji odvodí
+  // z toho, co na webu právě je, takže draft startuje shodný s webem.
+  if (!out.menuPublished) out.menuPublished = menuSnapshot(out.menuToday);
+  return out;
 }
 function loadData() {
   try {
@@ -1507,10 +1526,13 @@ function schedulePbPush() {
 async function pbPush() {
   if (!pbToken) { if (localStorage.getItem(PB_PASS_KEY) === null) pbStatus('nopass'); return; }
   const url = PB_URL + '/api/collections/site_data/records' + (pbRecordId ? '/' + pbRecordId : '');
+  // Na server jde publikovaná verze menu, ne rozepsaný draft z builderu.
+  const payload = { ...state, menuToday: state.menuPublished || menuSnapshot(state.menuToday) };
+  delete payload.menuPublished;
   const opts = () => ({
     method: pbRecordId ? 'PATCH' : 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': pbToken },
-    body: JSON.stringify(pbRecordId ? { data: state } : { key: 'kovarna_data', data: state })
+    body: JSON.stringify(pbRecordId ? { data: payload } : { key: 'kovarna_data', data: payload })
   });
   try {
     let res = await fetch(url, opts());
@@ -1706,6 +1728,12 @@ function initApp() {
   document.getElementById('btnPrint').onclick         = printMenu;
   document.getElementById('btnImage').onclick         = downloadMenuImage;
   document.getElementById('btnSaveTpl').onclick        = saveAsTemplate;
+
+  // Stav „rozepsáno / na webu" musí reagovat i na psaní, ne jen na překreslení.
+  let statusTimer = null;
+  const prekresliStav = () => { clearTimeout(statusTimer); statusTimer = setTimeout(renderLiveStatus, 250); };
+  document.getElementById('todayNote').addEventListener('input', prekresliStav);
+  document.getElementById('mbWrap').addEventListener('input', prekresliStav);
   document.getElementById('btnAddSection').onclick    = () => { addSection(); };
   document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; renderLiveStatus(); };
   document.getElementById('todayNote').oninput  = e => { state.menuToday.note = e.target.value; };
@@ -1818,23 +1846,35 @@ function renderLiveStatus() {
   );
   if (!hasContent) { el.className = 'menu-live-status'; el.innerHTML = ''; return; }
 
-  // Datum bereme z pole, ne ze state — uživatel ho mohl právě přepsat a ještě nepublikovat.
-  const picked = document.getElementById('todayDate').value || null;
-  const saved  = state.menuToday.date || null;
-  const live   = !!saved && saved >= todayIso();
+  // Porovnáváme rozepsaný draft s tím, co je opravdu publikované na webu.
+  const draft = menuSnapshot({
+    ...state.menuToday,
+    date: document.getElementById('todayDate').value || null,
+    note: document.getElementById('todayNote').value
+  });
+  const pub = state.menuPublished || menuSnapshot(state.menuToday);
+  const rozepsano = JSON.stringify(draft) !== JSON.stringify(pub);
 
-  el.className = 'menu-live-status show ' + (live ? 'live' : 'hidden-on-web');
-  if (live) {
-    const zmena = picked && picked !== saved;
-    el.innerHTML = '✓ <strong>Menu je na webu vidět</strong> (platí na ' + fmtCz(saved) + ').'
-      + (zmena ? ' Změnili jste datum — uložte tlačítkem <strong>Publikovat</strong>.' : '');
-  } else {
-    el.innerHTML = '⚠️ <strong>Toto menu na webu není vidět.</strong> '
-      + (saved ? 'Je datované na ' + fmtCz(saved) + ', což už je pryč. '
-               : 'Nemá nastavené datum. ')
-      + 'Zkontrolujte datum výše a klikněte na <strong>Publikovat</strong> — pak se objeví. '
-      + 'Návštěvníci zatím vidí „Menu se připravuje".';
+  const pubMa   = (pub.sections || []).some(s => (s.items || []).some(it => it.dishId || (it.name && String(it.name).trim())));
+  const pubZije = pubMa && !!pub.date && pub.date >= todayIso();
+
+  if (rozepsano) {
+    el.className = 'menu-live-status show hidden-on-web';
+    el.innerHTML = '✏️ <strong>Máte rozepsané změny, které na webu zatím nejsou.</strong> '
+      + 'Až budete hotovi, klikněte na <strong>Publikovat na web</strong>.<br>'
+      + (pubZije ? 'Návštěvníci teď vidí menu na ' + fmtCz(pub.date) + '.'
+                 : 'Návštěvníci teď vidí „Menu se připravuje".');
+    return;
   }
+
+  el.className = 'menu-live-status show ' + (pubZije ? 'live' : 'hidden-on-web');
+  el.innerHTML = pubZije
+    ? '✓ <strong>Menu je na webu vidět</strong> (platí na ' + fmtCz(pub.date) + ').'
+    : '⚠️ <strong>Toto menu na webu není vidět.</strong> '
+      + (pub.date ? 'Je datované na ' + fmtCz(pub.date) + ', což už je pryč. '
+                  : 'Nemá nastavené datum. ')
+      + 'Zkontrolujte datum výše a klikněte na <strong>Publikovat</strong>. '
+      + 'Návštěvníci zatím vidí „Menu se připravuje".';
 }
 
 function fmtCz(iso) {
@@ -2127,6 +2167,8 @@ function publishToday() {
   state.menuToday.sections.forEach(sec => {
     sec.items = sec.items.filter(it => it.dishId || (it.name && it.name.trim()));
   });
+  // Teprve tímhle krokem se menu dostane na web.
+  state.menuPublished = menuSnapshot(state.menuToday);
   if (saveData()) toast('Dnešní menu publikováno ✓', 'success');
   renderBuilder();
 }
