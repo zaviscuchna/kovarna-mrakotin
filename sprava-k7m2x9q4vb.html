@@ -173,6 +173,25 @@ main.content { padding: 36px 44px; max-width: 1080px; flex: 1 1 auto; min-width:
 }
 .menu-live-status strong { font-weight: 600; }
 
+/* ─── Šablony menu ─── */
+.tpl-list { display: flex; gap: 10px; flex-wrap: wrap; }
+.tpl-list:empty::before {
+  content: 'Zatím žádná šablona. Sestavte menu níž a uložte ho tlačítkem pod tímto textem.';
+  color: var(--text-muted); font-size: 13.5px;
+}
+.tpl-chip {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 12px 10px 14px; background: #fff;
+}
+.tpl-chip b { font-weight: 600; font-size: 14px; }
+.tpl-chip .tpl-meta { color: var(--text-muted); font-size: 12px; }
+.tpl-chip .tpl-del {
+  border: none; background: none; cursor: pointer;
+  color: var(--text-muted); font-size: 16px; line-height: 1; padding: 2px 4px;
+}
+.tpl-chip .tpl-del:hover { color: #b3261e; }
+
 .row { display: grid; gap: 16px; }
 .row-2 { grid-template-columns: 1fr 1fr; }
 .row-3 { grid-template-columns: 1fr 1fr 1fr; }
@@ -474,7 +493,7 @@ label.field > span {
   /* Horní okraj je záměrně velký: menu se zakládá do desek a sponka
      zakryje horní pruh papíru. Změna čísla tady musí jít ruku v ruce
      s PAD_TOP v printMenu(), jinak zvětšení přeteče ze stránky. */
-  #printArea { padding: 30mm 14mm 12mm; }
+  #printArea { padding: 38mm 14mm 12mm; }
 }
 
 /* ─── Listek editor ─────────────────── */
@@ -733,6 +752,19 @@ label.field > span {
             <input type="date" class="input" id="todayDate" style="max-width:240px;">
           </label>
           <div id="menuLiveStatus" class="menu-live-status"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Šablony</h2>
+            <div class="desc">Hotové sestavy menu. Kliknutím se načtou do sestavení níž, kde je ještě můžete upravit. Datum zůstane dnešní.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div id="tplList" class="tpl-list"></div>
+          <button type="button" class="btn btn--ghost btn--small" id="btnSaveTpl" style="margin-top:14px;">+ Uložit současné menu jako šablonu</button>
         </div>
       </div>
 
@@ -1209,8 +1241,52 @@ const LISTEK_SEED = [
     ]}
 ];
 
+/* ─── Šablony menu ─────────────────────────────────────
+   Víkend nemá Menu 1 a Menu 2 a jmenuje se „Nabídka dne". Aby to klient
+   nemusel pokaždé skládat znovu, je připravená jako šablona — jedním
+   kliknutím se načte do sestavení a on už jen upraví jídla.
+   Vlastní šablony si přidá tlačítkem „Uložit jako šablonu". */
+const MENU_TEMPLATES_SEED = [
+  {
+    id: 'tpl_vikend',
+    name: 'Víkend',
+    title: 'Nabídka dne',
+    note: 'Rezervace na telefonu 567 317 569',
+    sections: [
+      { id: 'sec_polevky', title: 'Polévky', priceText: '59,- Kč', items: [
+        { dishId: 'd_vyvar' },
+        { name: 'Česneková krémová s máslovými krutony' }
+      ]},
+      { id: 'sec_hotova', title: 'Hotová jídla a minutky', priceText: '', items: [
+        { name: 'Kynuté knedlíky plněné meruňkami se zakysanou smetanou', weight: '250 g', price: 175 },
+        { dishId: 'd_vrabec',       weight: '200 g', price: 195 },
+        { name: 'Smažený kuřecí řízek s bramborovým salátem', weight: '200 g', price: 205 },
+        { name: 'Španělský ptáček s dušenou rýží',            weight: '200 g', price: 225 },
+        { dishId: 'd_svickova',     weight: '200 g', price: 225 },
+        { name: 'Papardelle s kuřecím masem a sušenými rajčaty, parmazán', weight: '220 g', price: 215 },
+        { dishId: 'd_pstruh_gril',  weight: '220 g', price: 265 },
+        { name: 'Vepřový steak s houbovou omáčkou, šťouchané brambory', weight: '200 g', price: 245 },
+        { dishId: 'd_katuv_sleh',   weight: '220 g', price: 249 },
+        { dishId: 'd_kureci_steak', weight: '200 g', price: 246 },
+        { name: 'Anglický rostbeef s hranolky a tatarskou omáčkou', weight: '200 g', price: 255 }
+      ]},
+      { id: 'sec_salaty', title: 'Saláty a bezmasá jídla', priceText: '', items: [
+        { dishId: 'd_caesar',       weight: '150 g', price: 215 },
+        { name: 'Papardelle se sušenými rajčaty, parmazán', weight: '200 g', price: 165 },
+        { dishId: 'd_hermelin',     weight: '120 g', price: 195 },
+        { dishId: 'd_smazeny_syr',  weight: '100 g', price: 197 },
+        { dishId: 'd_coleslaw',     weight: '150 g', price: 55 }
+      ]},
+      { id: 'sec_dezert', title: 'Dezert', priceText: '', items: [
+        { dishId: 'd_palacinka', price: 55 }
+      ]}
+    ]
+  }
+];
+
 const MENU_TODAY_SEED = {
   date: null,   // null = zobrazuje se dnešní datum
+  title: 'Menu dne',
   note: 'Polední menu podáváme 11:00 – 14:00 · Rezervace na telefonu 567 317 569',
   sections: [
     { id: 'sec_polevka', title: 'Polévka', priceText: '59,- Kč',
@@ -1275,6 +1351,7 @@ const DEFAULT_DATA = {
     p2: 'Naším cílem je poctivá česká kuchyně připravovaná z čerstvých surovin, přátelská obsluha a prostředí, ve kterém se budete cítit jako doma. Kapacita až 50 míst v útulném salónku, v teplých měsících doplněných letní zahrádkou.'
   },
   menuToday: MENU_TODAY_SEED,
+  menuTemplates: MENU_TEMPLATES_SEED,
   dishes: DISHES_SEED,
   listekTabs: LISTEK_SEED,
   galleryVersion: 4,
@@ -1628,6 +1705,7 @@ function initApp() {
   document.getElementById('btnPublish').onclick       = publishToday;
   document.getElementById('btnPrint').onclick         = printMenu;
   document.getElementById('btnImage').onclick         = downloadMenuImage;
+  document.getElementById('btnSaveTpl').onclick        = saveAsTemplate;
   document.getElementById('btnAddSection').onclick    = () => { addSection(); };
   document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; renderLiveStatus(); };
   document.getElementById('todayNote').oninput  = e => { state.menuToday.note = e.target.value; };
@@ -1721,6 +1799,7 @@ function renderToday() {
     ];
   }
   renderBuilder();
+  renderTemplates();
 }
 
 /* Web ukáže menu dne jen když je datované na dnešek nebo později.
@@ -1761,6 +1840,76 @@ function renderLiveStatus() {
 function fmtCz(iso) {
   const [y, m, d] = iso.split('-');
   return `${+d}. ${+m}. ${y}`;
+}
+
+/* ─── Šablony menu ───────────────────────────────────── */
+function renderTemplates() {
+  const box = document.getElementById('tplList');
+  if (!box) return;
+  const tpls = state.menuTemplates || [];
+  box.innerHTML = tpls.map(t => {
+    const pocet = (t.sections || []).reduce((a, s) => a + (s.items || []).length, 0);
+    return `<div class="tpl-chip">
+      <button type="button" class="btn btn--primary btn--small" data-load="${escapeAttr(t.id)}">${escapeHtml(t.name)}</button>
+      <span class="tpl-meta">${pocet} jídel · „${escapeHtml(t.title || 'Menu dne')}"</span>
+      <button type="button" class="tpl-del" data-del="${escapeAttr(t.id)}" title="Smazat šablonu">✕</button>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('[data-load]').forEach(b => b.onclick = () => loadTemplate(b.dataset.load));
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteTemplate(b.dataset.del));
+}
+
+function loadTemplate(id) {
+  const t = (state.menuTemplates || []).find(x => x.id === id);
+  if (!t) return;
+  const maObsah = (state.menuToday.sections || []).some(s =>
+    (s.items || []).some(it => it.dishId || (it.name && it.name.trim())));
+  if (maObsah && !confirm(`Načíst šablonu „${t.name}"?\n\nSoučasné rozepsané menu se tím přepíše.`)) return;
+
+  // hluboká kopie, ať úpravy menu nesahaly do šablony
+  state.menuToday.sections = JSON.parse(JSON.stringify(t.sections || []));
+  state.menuToday.title = t.title || 'Menu dne';
+  if (t.note != null) state.menuToday.note = t.note;
+  document.getElementById('todayNote').value = state.menuToday.note || '';
+
+  renderBuilder();
+  toast(`Šablona „${t.name}" načtena — zkontrolujte a publikujte`, 'success');
+}
+
+function saveAsTemplate() {
+  const sections = (state.menuToday.sections || []).filter(s =>
+    (s.items || []).some(it => it.dishId || (it.name && it.name.trim())));
+  if (!sections.length) return toast('Menu je prázdné — nejdřív přidejte jídla', 'error');
+
+  const nazev = (prompt('Název šablony (např. Víkend, Všední den, Svátky):') || '').trim();
+  if (!nazev) return;
+  const nadpis = (prompt('Nadpis na tisku:', state.menuToday.title || 'Menu dne') || 'Menu dne').trim();
+
+  state.menuTemplates = state.menuTemplates || [];
+  const stara = state.menuTemplates.find(t => t.name.toLowerCase() === nazev.toLowerCase());
+  if (stara && !confirm(`Šablona „${stara.name}" už existuje. Přepsat ji?`)) return;
+
+  const data = {
+    id: stara ? stara.id : genId('tpl'),
+    name: nazev,
+    title: nadpis,
+    note: state.menuToday.note || '',
+    sections: JSON.parse(JSON.stringify(sections))
+  };
+  if (stara) state.menuTemplates[state.menuTemplates.indexOf(stara)] = data;
+  else state.menuTemplates.push(data);
+
+  if (saveData()) toast(`Šablona „${nazev}" uložena ✓`, 'success');
+  renderTemplates();
+}
+
+function deleteTemplate(id) {
+  const t = (state.menuTemplates || []).find(x => x.id === id);
+  if (!t || !confirm(`Smazat šablonu „${t.name}"?`)) return;
+  state.menuTemplates = state.menuTemplates.filter(x => x.id !== id);
+  if (saveData()) toast('Šablona smazána', 'success');
+  renderTemplates();
 }
 
 function renderBuilder() {
@@ -2139,18 +2288,20 @@ function collectMenuForExport() {
   });
   // Rezervace vedou na pevnou linku (mobil je až druhý kontakt) — v tisku
   // i v obrázku na Facebook se dřív objevoval mobil a odporoval poznámce pod menu.
-  return { date, dateFmt, sections, note: state.menuToday.note || '', phone: state.contact.phone || state.contact.phoneAlt || '' };
+  return { date, dateFmt, sections, note: state.menuToday.note || '',
+           nadpis: state.menuToday.title || 'Menu dne',
+           phone: state.contact.phone || state.contact.phoneAlt || '' };
 }
 
 /* Tisk — kompaktní, aby se běžné denní menu vešlo na jednu A4.
    Barvy záměrně tmavší (#444/#555) — světle šedá se na tiskárně ztrácela. */
 async function printMenu() {
-  const { dateFmt, sections, note, phone } = collectMenuForExport();
+  const { dateFmt, sections, note, nadpis } = collectMenuForExport();
   if (!sections.length) return toast('Menu je prázdné — nejdřív přidejte jídla', 'error');
 
   let html = `
     <div style="text-align: center; padding-bottom: 11px; border-bottom: 1px solid #bbb;">
-      <div style="font-family: 'Playfair Display', serif; font-style: italic; font-size: 22px;">Menu dne — ${escapeHtml(dateFmt)}</div>
+      <div style="font-family: 'Playfair Display', serif; font-style: italic; font-size: 22px;">${escapeHtml(nadpis)} — ${escapeHtml(dateFmt)}</div>
       ${note ? `<div style="font-family: 'DM Sans', sans-serif; font-size: 12px; color: #333; margin-top: 7px;">${escapeHtml(note)}</div>` : ''}
     </div>`;
 
@@ -2173,9 +2324,6 @@ async function printMenu() {
      obrázek načte, a menu by pak přeteklo na druhou stranu. Zdroj má jen
      258 px, takže větší než ~150 px by v tisku měklo. */
   html += `<div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #bbb; text-align: center;">
-      <img src="img/logo.png" width="150" height="69" alt=""
-           onerror="this.style.display='none'"
-           style="display: block; margin: 0 auto 10px;">
       <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
       <div style="font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 5px; color: #555; margin-top: 5px;">OD ROKU 1793</div>
     </div>`;
@@ -2186,9 +2334,8 @@ async function printMenu() {
   area.innerHTML = '<div id="printZoom" style="font-family:\'Playfair Display\', Georgia, serif;">' + html + '</div>';
   const zoomEl = document.getElementById('printZoom');
 
-  /* Počkat na logo. Bez toho se window.print() zavolá dřív, než se obrázek
-     načte, a v tisku zůstane prázdný rámeček. Rozměry má nastavené napevno,
-     takže měření výšky níž je správné i předtím, než obrázek dorazí. */
+  /* Kdyby se do tisku někdy vrátil obrázek, počkat na jeho načtení —
+     jinak by ho Chrome vytiskl jako prázdný rámeček. */
   await Promise.all([...area.querySelectorAll('img')].map(img =>
     img.complete ? Promise.resolve()
                  : new Promise(res => { img.onload = img.onerror = res; })
@@ -2201,7 +2348,7 @@ async function printMenu() {
   // Dlouhé menu se smí i zmenšit, aby zůstalo na jedné A4; krátké se roztáhne.
   const MIN_ZOOM = 0.8, MAX_ZOOM = 1.5, FILL = 0.97;
   // Musí sedět s paddingem #printArea v tiskovém CSS (A4 = 210 × 297 mm).
-  const PAD_TOP = 30, PAD_X = 14, PAD_BOTTOM = 12;
+  const PAD_TOP = 38, PAD_X = 14, PAD_BOTTOM = 12;
   const mm = 3.7795;
   const pageW = (210 - 2 * PAD_X) * mm;
   const pageH = (297 - PAD_TOP - PAD_BOTTOM) * mm;
