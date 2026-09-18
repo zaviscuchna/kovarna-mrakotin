@@ -1823,11 +1823,21 @@ function todayIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/* Menu se ukládají po dnech do DATA.menus, aby si restaurace mohla nachystat
+   víkend dopředu, aniž by tím přepsala dnešek. Starší data menus nemají, proto
+   se použije menuToday — ale jen když platí přesně na dnešek. */
+function menuNaDnes() {
+  const dnes = todayIso();
+  const podleDne = DATA.menus && DATA.menus[dnes];
+  if (podleDne) return podleDne;
+  const m = DATA.menuToday;
+  return (m && m.date === dnes) ? m : null;
+}
+
 function renderTodayMenu() {
-  // Menu dne platí jen pro dnešek a dál. Včerejší (nebo nedatované) menu nikdy
-  // nevydáváme za dnešní nabídku — radši ukážeme „menu se připravuje".
-  const menuDate = DATA.menuToday?.date || null;
-  const isCurrent = !!menuDate && menuDate >= todayIso();
+  const dnesniMenu = menuNaDnes();
+  const menuDate = dnesniMenu?.date || null;
+  const isCurrent = !!dnesniMenu;
 
   const dateEl = document.getElementById('menuDate');
   if (dateEl) dateEl.textContent = formatCzDate(isCurrent ? menuDate : null);
@@ -1839,7 +1849,7 @@ function renderTodayMenu() {
   document.getElementById('menuFootPhone').textContent = '+420 ' + phoneStr;
 
   // Má builder nějaké jídlo s reálným obsahem?
-  const sections = DATA.menuToday?.sections || [];
+  const sections = dnesniMenu?.sections || [];
   const hasContent = isCurrent && sections.some(sec =>
     (sec.items || []).some(it => it.dishId || (it.name && String(it.name).trim()))
   );
@@ -1848,18 +1858,18 @@ function renderTodayMenu() {
   if (hasContent) {
     frame.style.background = 'transparent';
     frame.style.minHeight = '0';
-    frame.innerHTML = buildSectionsHtml(sections, DATA.menuToday?.note, DATA.dishes || []);
+    frame.innerHTML = buildSectionsHtml(sections, dnesniMenu?.note, DATA.dishes || []);
     return;
   }
 
   // 2) Legacy: nahraný JPG (rovněž jen pokud je menu aktuální)
-  if (isCurrent && DATA.menuToday?.imageUrl) {
+  if (isCurrent && dnesniMenu?.imageUrl) {
     frame.style.background = '';
     frame.style.minHeight = '';
-    frame.innerHTML = `<img src="${DATA.menuToday.imageUrl}" alt="Dnešní denní menu">`;
-    if (DATA.menuToday?.note) {
+    frame.innerHTML = `<img src="${dnesniMenu.imageUrl}" alt="Dnešní denní menu">`;
+    if (dnesniMenu?.note) {
       frame.insertAdjacentHTML('beforeend',
-        `<div style="position:absolute;left:0;right:0;bottom:0;padding:12px 18px;background:rgba(28,21,16,.78);color:#FDFAF6;font-size:13px;backdrop-filter:blur(8px);">${escapeHtml(DATA.menuToday.note)}</div>`);
+        `<div style="position:absolute;left:0;right:0;bottom:0;padding:12px 18px;background:rgba(28,21,16,.78);color:#FDFAF6;font-size:13px;backdrop-filter:blur(8px);">${escapeHtml(dnesniMenu.note)}</div>`);
     }
     return;
   }

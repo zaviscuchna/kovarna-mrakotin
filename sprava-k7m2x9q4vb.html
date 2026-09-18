@@ -1352,6 +1352,7 @@ const DEFAULT_DATA = {
     p2: 'Naším cílem je poctivá česká kuchyně připravovaná z čerstvých surovin, přátelská obsluha a prostředí, ve kterém se budete cítit jako doma. Kapacita až 50 míst v útulném salónku, v teplých měsících doplněných letní zahrádkou.'
   },
   menuToday: MENU_TODAY_SEED,
+  menus: {},                       // publikovaná menu po dnech: 'YYYY-MM-DD' → menu
   menuTemplates: MENU_TEMPLATES_SEED,
   dishes: DISHES_SEED,
   listekTabs: LISTEK_SEED,
@@ -1754,7 +1755,16 @@ function initApp() {
   document.getElementById('todayNote').addEventListener('input', konceptZmenen);
   document.getElementById('btnAddSection').addEventListener('click', ulozKoncept);
   document.getElementById('btnAddSection').onclick    = () => { addSection(); };
-  document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; renderLiveStatus(); saveData(); };
+  document.getElementById('todayDate').onchange = e => {
+    const den = e.target.value || null;
+    state.menuToday.date = den;
+    const publ = den && state.menus && state.menus[den];
+    if (publ && confirm(`Na ${fmtCz(den)} už je publikované menu.\n\nNačíst ho k úpravě? (Ne = ponechat rozepsané)`)) {
+      state.menuToday = menuSnapshot(publ);
+      renderToday();
+    }
+    renderLiveStatus(); saveData();
+  };
   document.getElementById('todayNote').oninput  = e => { state.menuToday.note = e.target.value; };
 
   // Database
@@ -1865,35 +1875,40 @@ function renderLiveStatus() {
   );
   if (!hasContent) { el.className = 'menu-live-status'; el.innerHTML = ''; return; }
 
-  // Porovnáváme rozepsaný draft s tím, co je opravdu publikované na webu.
+  // Porovnáváme rozepsané menu s tím, co je publikované na TEN DEN.
   const draft = menuSnapshot({
     ...state.menuToday,
     date: document.getElementById('todayDate').value || null,
     note: document.getElementById('todayNote').value
   });
-  const pub = state.menuPublished || menuSnapshot(state.menuToday);
-  const rozepsano = JSON.stringify(draft) !== JSON.stringify(pub);
+  const den  = draft.date;
+  const dnes = todayIso();
+  const publ = (den && state.menus) ? state.menus[den] : null;
+  const dnesniPubl = (state.menus || {})[dnes];
 
-  const pubMa   = (pub.sections || []).some(s => (s.items || []).some(it => it.dishId || (it.name && String(it.name).trim())));
-  const pubZije = pubMa && !!pub.date && pub.date >= todayIso();
+  const coVidiHosti = dnesniPubl
+    ? 'Hosté teď na webu vidí menu na dnešek.'
+    : 'Hosté teď na webu vidí „Menu se připravuje".';
 
-  if (rozepsano) {
+  if (!den) {
     el.className = 'menu-live-status show hidden-on-web';
-    el.innerHTML = '✏️ <strong>Máte rozepsané změny, které na webu zatím nejsou.</strong> '
-      + 'Až budete hotovi, klikněte na <strong>Publikovat na web</strong>.<br>'
-      + (pubZije ? 'Návštěvníci teď vidí menu na ' + fmtCz(pub.date) + '.'
-                 : 'Návštěvníci teď vidí „Menu se připravuje".');
+    el.innerHTML = '⚠️ <strong>Nastavte datum</strong>, na které menu platí — bez něj ho nelze publikovat.';
     return;
   }
 
-  el.className = 'menu-live-status show ' + (pubZije ? 'live' : 'hidden-on-web');
-  el.innerHTML = pubZije
-    ? '✓ <strong>Menu je na webu vidět</strong> (platí na ' + fmtCz(pub.date) + ').'
-    : '⚠️ <strong>Toto menu na webu není vidět.</strong> '
-      + (pub.date ? 'Je datované na ' + fmtCz(pub.date) + ', což už je pryč. '
-                  : 'Nemá nastavené datum. ')
-      + 'Zkontrolujte datum výše a klikněte na <strong>Publikovat</strong>. '
-      + 'Návštěvníci zatím vidí „Menu se připravuje".';
+  if (!publ || JSON.stringify(draft) !== JSON.stringify(publ)) {
+    el.className = 'menu-live-status show hidden-on-web';
+    el.innerHTML = '✏️ <strong>Rozepsané menu na ' + fmtCz(den) + ' zatím není publikované.</strong> '
+      + 'Až budete hotovi, klikněte na <strong>Publikovat na web</strong>.<br>' + coVidiHosti;
+    return;
+  }
+
+  el.className = 'menu-live-status show ' + (den >= dnes ? 'live' : 'hidden-on-web');
+  el.innerHTML = den === dnes
+    ? '✓ <strong>Menu je publikované a hosté ho na webu vidí</strong> (platí na dnešek).'
+    : den > dnes
+      ? '✓ <strong>Menu je publikované na ' + fmtCz(den) + '.</strong> Na webu se objeví ten den ráno.<br>' + coVidiHosti
+      : '⚠️ <strong>Toto menu platilo ' + fmtCz(den) + '</strong>, což už je pryč. ' + coVidiHosti;
 }
 
 function fmtCz(iso) {
@@ -2186,8 +2201,17 @@ function publishToday() {
   state.menuToday.sections.forEach(sec => {
     sec.items = sec.items.filter(it => it.dishId || (it.name && it.name.trim()));
   });
-  // Teprve tímhle krokem se menu dostane na web.
-  state.menuPublished = menuSnapshot(state.menuToday);
+  // Teprve tímhle krokem se menu dostane na web — a to na konkrétní den,
+  // takže nachystaný víkend nepřepíše dnešek.
+  const snap = menuSnapshot(state.menuToday);
+  if (!snap.date) return toast('Nastavte datum, na které menu platí', 'error');
+  state.menus = state.menus || {};
+  state.menus[snap.date] = snap;
+  // úklid: držíme 30 dní zpět, budoucí necháváme
+  const hranice = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+  Object.keys(state.menus).forEach(d => { if (d < hranice) delete state.menus[d]; });
+  if (snap.date === todayIso()) state.menuToday = snap;   // kompatibilita se starším webem
+  state.menuPublished = snap;
   if (saveData()) toast('Dnešní menu publikováno ✓', 'success');
   renderBuilder();
 }
