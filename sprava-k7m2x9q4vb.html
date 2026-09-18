@@ -493,7 +493,7 @@ label.field > span {
   /* Horní okraj je záměrně velký: menu se zakládá do desek a sponka
      zakryje horní pruh papíru. Změna čísla tady musí jít ruku v ruce
      s PAD_TOP v printMenu(), jinak zvětšení přeteče ze stránky. */
-  #printArea { padding: 38mm 14mm 12mm; }
+  #printArea { padding: 45mm 14mm 12mm; }
 }
 
 /* ─── Listek editor ─────────────────── */
@@ -2323,9 +2323,14 @@ async function printMenu() {
   /* Rozměry loga jsou napevno — bez nich by se výška měřila dřív, než se
      obrázek načte, a menu by pak přeteklo na druhou stranu. Zdroj má jen
      258 px, takže větší než ~150 px by v tisku měklo. */
-  html += `<div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #bbb; text-align: center;">
-      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 26px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
-      <div style="font-family: 'DM Sans', sans-serif; font-size: 11px; letter-spacing: 5px; color: #555; margin-top: 5px;">OD ROKU 1793</div>
+  /* Rozměry loga napevno — bez nich by se výška stránky měřila dřív, než se
+     obrázek načte, a menu by přeteklo na druhou stranu. */
+  html += `<div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #bbb; text-align: center;">
+      <img src="img/logo.png" width="85" height="39" alt=""
+           onerror="this.style.display='none'"
+           style="display: block; margin: 0 auto 7px;">
+      <div style="font-family: 'Playfair Display', Georgia, serif; font-size: 20px; font-weight: 500; letter-spacing: -0.01em;">Restaurace Na Kovárně Mrákotín</div>
+      <div style="font-family: 'DM Sans', sans-serif; font-size: 9.5px; letter-spacing: 4px; color: #555; margin-top: 4px;">OD ROKU 1793</div>
     </div>`;
 
   const area = document.getElementById('printArea');
@@ -2348,7 +2353,7 @@ async function printMenu() {
   // Dlouhé menu se smí i zmenšit, aby zůstalo na jedné A4; krátké se roztáhne.
   const MIN_ZOOM = 0.8, MAX_ZOOM = 1.5, FILL = 0.97;
   // Musí sedět s paddingem #printArea v tiskovém CSS (A4 = 210 × 297 mm).
-  const PAD_TOP = 38, PAD_X = 14, PAD_BOTTOM = 12;
+  const PAD_TOP = 45, PAD_X = 14, PAD_BOTTOM = 12;
   const mm = 3.7795;
   const pageW = (210 - 2 * PAD_X) * mm;
   const pageH = (297 - PAD_TOP - PAD_BOTTOM) * mm;
