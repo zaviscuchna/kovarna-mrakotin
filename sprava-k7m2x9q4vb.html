@@ -803,24 +803,6 @@ label.field > span {
         <a href="index.html" target="_blank" class="btn btn--ghost btn--big">Otevřít web →</a>
       </div>
 
-      <div class="card" id="dbCard" style="margin-top: 32px;">
-        <div class="card-head card-toggle" id="dbToggle">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span class="chev" style="font-size: 14px; color: var(--text-muted);">▾</span>
-            <div>
-              <h2>Databáze jídel <span style="color: var(--text-muted); font-weight: 400; font-size: 13px;">(<span id="dbCount">0</span>)</span></h2>
-              <div class="desc">Knihovna jídel s cenami a alergeny — autocomplete v menu hledá tady.</div>
-            </div>
-          </div>
-          <button type="button" class="btn btn--primary btn--small" id="btnAddDish">+ Přidat jídlo</button>
-        </div>
-        <div class="card-body">
-          <input type="text" class="db-search" id="dbSearch" placeholder="🔍 Hledat v jídlech…">
-          <div style="overflow-x: auto;">
-            <table class="db-table" id="dbTable"></table>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- ─── JÍDELNÍ LÍSTEK ─── -->
@@ -990,7 +972,26 @@ label.field > span {
       <div class="page-head">
         <div>
           <h1>Nastavení</h1>
-          <p>Bezpečnost a zálohy.</p>
+          <p>Databáze jídel, bezpečnost a zálohy.</p>
+        </div>
+      </div>
+
+      <div class="card" id="dbCard" >
+        <div class="card-head card-toggle" id="dbToggle">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="chev" style="font-size: 14px; color: var(--text-muted);">▾</span>
+            <div>
+              <h2>Databáze jídel <span style="color: var(--text-muted); font-weight: 400; font-size: 13px;">(<span id="dbCount">0</span>)</span></h2>
+              <div class="desc">Knihovna jídel, ze které našeptává sestavení menu. Sem se doplňují alergeny a ceny. Pro běžné psaní menu ji nepotřebujete.</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn--primary btn--small" id="btnAddDish">+ Přidat jídlo</button>
+        </div>
+        <div class="card-body">
+          <input type="text" class="db-search" id="dbSearch" placeholder="🔍 Hledat v jídlech…">
+          <div style="overflow-x: auto;">
+            <table class="db-table" id="dbTable"></table>
+          </div>
         </div>
       </div>
 
@@ -1157,9 +1158,9 @@ const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
    ⚠️ Alergeny jsou náš odhad — klient je MUSÍ zkontrolovat v adminu! */
 const DISHES_SEED = [
   /* POLÉVKY */
-  { id: 'd_vyvar',        name: 'Hovězí vývar s masem a nudlemi', desc: '', weight: '', price: 59, allergens: [1,3,9], category: 'polevka' },
-  { id: 'd_fazolova',     name: 'Fazolová s klobásou', desc: '', weight: '', price: 59, allergens: [1], category: 'polevka' },
-  { id: 'd_cesnecka',     name: 'Staročeská česnečka s chlebovými krutony', desc: '', weight: '', price: 59, allergens: [1,3], category: 'polevka' },
+  { id: 'd_vyvar',        name: 'Hovězí vývar s masem a nudlemi', desc: '', weight: '0,33 l', price: 59, allergens: [1,3,9], category: 'polevka' },
+  { id: 'd_fazolova',     name: 'Fazolová s klobásou', desc: '', weight: '0,33 l', price: 59, allergens: [1], category: 'polevka' },
+  { id: 'd_cesnecka',     name: 'Staročeská česnečka s chlebovými krutony', desc: '', weight: '0,33 l', price: 59, allergens: [1,3], category: 'polevka' },
   /* HLAVNÍ JÍDLA / MINUTKY */
   { id: 'd_tatarak',      name: 'Hovězí tatarák', desc: 'a 5 ks topinek', weight: '125 g', price: 218, allergens: [1,3,10], category: 'hlavni' },
   { id: 'd_katuv_sleh',   name: 'Katův šleh z vepřové panenky', desc: 'lehce pikantní, hranolky', weight: '250 g', price: 245, allergens: [1,10], category: 'hlavni' },
@@ -1255,7 +1256,7 @@ const MENU_TEMPLATES_SEED = [
     sections: [
       { id: 'sec_polevky', title: 'Polévky', priceText: '59,- Kč', items: [
         { dishId: 'd_vyvar' },
-        { name: 'Česneková krémová s máslovými krutony' }
+        { name: 'Česneková krémová s máslovými krutony', weight: '0,33 l' }
       ]},
       { id: 'sec_hotova', title: 'Hotová jídla a minutky', priceText: '', items: [
         { name: 'Kynuté knedlíky plněné meruňkami se zakysanou smetanou', weight: '250 g', price: 175 },
@@ -1425,9 +1426,13 @@ function mergeSaved(saved) {
     if (saved.contact && saved.contact.email === 'ing.vesely@outlook.com') saved.contact.email = '';
   }
   const out = deepMerge(JSON.parse(JSON.stringify(DEFAULT_DATA)), saved);
-  // Data ze serveru publikovanou verzi nenesou — první načtení ji odvodí
-  // z toho, co na webu právě je, takže draft startuje shodný s webem.
-  if (!out.menuPublished) out.menuPublished = menuSnapshot(out.menuToday);
+  if (!saved.menuPublished) {
+    // Data ze serveru nesou v menuToday to, co je na webu, a rozepsaný
+    // koncept zvlášť v menuDraft. Web menuDraft ignoruje.
+    out.menuPublished = menuSnapshot(out.menuToday);
+    if (saved.menuDraft) out.menuToday = menuSnapshot(saved.menuDraft);
+  }
+  delete out.menuDraft;
   return out;
 }
 function loadData() {
@@ -1526,8 +1531,13 @@ function schedulePbPush() {
 async function pbPush() {
   if (!pbToken) { if (localStorage.getItem(PB_PASS_KEY) === null) pbStatus('nopass'); return; }
   const url = PB_URL + '/api/collections/site_data/records' + (pbRecordId ? '/' + pbRecordId : '');
-  // Na server jde publikovaná verze menu, ne rozepsaný draft z builderu.
-  const payload = { ...state, menuToday: state.menuPublished || menuSnapshot(state.menuToday) };
+  // Na web jde publikovaná verze. Rozepsaný koncept se ukládá zvlášť do
+  // menuDraft, aby přežil zavření prohlížeče — web si ho nevšímá.
+  const payload = {
+    ...state,
+    menuToday: state.menuPublished || menuSnapshot(state.menuToday),
+    menuDraft: menuSnapshot(state.menuToday)
+  };
   delete payload.menuPublished;
   const opts = () => ({
     method: pbRecordId ? 'PATCH' : 'POST',
@@ -1729,13 +1739,22 @@ function initApp() {
   document.getElementById('btnImage').onclick         = downloadMenuImage;
   document.getElementById('btnSaveTpl').onclick        = saveAsTemplate;
 
-  // Stav „rozepsáno / na webu" musí reagovat i na psaní, ne jen na překreslení.
-  let statusTimer = null;
+  /* Sestavení menu měnilo stav jen v paměti — po zavření prohlížeče byla
+     rozdělaná práce pryč. Koncept se proto průběžně ukládá. Publikovat to
+     nemůže: na web jde jedině state.menuPublished, který přepíše až
+     tlačítko Publikovat. */
+  let statusTimer = null, draftTimer = null;
   const prekresliStav = () => { clearTimeout(statusTimer); statusTimer = setTimeout(renderLiveStatus, 250); };
-  document.getElementById('todayNote').addEventListener('input', prekresliStav);
-  document.getElementById('mbWrap').addEventListener('input', prekresliStav);
+  const ulozKoncept  = () => { clearTimeout(draftTimer);  draftTimer  = setTimeout(saveData, 1200); };
+  const konceptZmenen = () => { prekresliStav(); ulozKoncept(); };
+
+  const mb = document.getElementById('mbWrap');
+  mb.addEventListener('input', konceptZmenen);
+  mb.addEventListener('click', ulozKoncept);          // přidání/smazání řádku i sekce
+  document.getElementById('todayNote').addEventListener('input', konceptZmenen);
+  document.getElementById('btnAddSection').addEventListener('click', ulozKoncept);
   document.getElementById('btnAddSection').onclick    = () => { addSection(); };
-  document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; renderLiveStatus(); };
+  document.getElementById('todayDate').onchange = e => { state.menuToday.date = e.target.value || null; renderLiveStatus(); saveData(); };
   document.getElementById('todayNote').oninput  = e => { state.menuToday.note = e.target.value; };
 
   // Database
