@@ -271,9 +271,28 @@ label.field > span {
 
 .mb-item {
   display: grid;
-  grid-template-columns: 80px 1fr 100px auto;
+  grid-template-columns: 22px 80px 1fr 100px auto;
   gap: 8px; align-items: center;
 }
+/* Pořadí jídel se mění přetažením za úchyt vlevo */
+.mb-item-drag {
+  align-self: stretch;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; background: none; padding: 0;
+  color: var(--text-muted); font-size: 15px; letter-spacing: -2px;
+  cursor: grab; border-radius: 6px;
+  touch-action: none; user-select: none;
+}
+.mb-item-drag:hover { color: var(--teal-dark); background: rgba(0,0,0,.04); }
+.mb-item.dragging {
+  position: relative; z-index: 5;
+  background: var(--white); border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.14);
+  outline: 2px solid var(--teal-mid); outline-offset: 3px;
+}
+.mb-item.dragging .mb-item-drag { cursor: grabbing; color: var(--teal-dark); }
+body.mb-dragging, body.mb-dragging * { cursor: grabbing !important; user-select: none !important; }
+.mb-section.drop-target { border-color: var(--teal-mid); }
 .mb-item-weight,
 .mb-item-price {
   padding: 9px 10px; font-size: 13px;
@@ -312,11 +331,13 @@ label.field > span {
 .mb-item-rm:hover { color: var(--danger); background: rgba(197,59,59,.06); }
 
 @media (max-width: 720px) {
-  .mb-item { grid-template-columns: 70px 1fr auto; grid-template-rows: auto auto; }
-  .mb-item .mb-name-wrap { grid-column: 1 / -1; grid-row: 1; }
-  .mb-item .mb-item-weight { grid-column: 1; grid-row: 2; }
-  .mb-item .mb-item-price  { grid-column: 2; grid-row: 2; }
-  .mb-item .mb-item-rm     { grid-column: 3; grid-row: 2; }
+  .mb-item { grid-template-columns: 22px 70px minmax(0, 1fr) auto; grid-template-rows: auto auto; }
+  .mb-item > * { min-width: 0; }
+  .mb-item .mb-item-drag   { grid-column: 1; grid-row: 1 / span 2; }
+  .mb-item .mb-name-wrap   { grid-column: 2 / -1; grid-row: 1; }
+  .mb-item .mb-item-weight { grid-column: 2; grid-row: 2; }
+  .mb-item .mb-item-price  { grid-column: 3; grid-row: 2; }
+  .mb-item .mb-item-rm     { grid-column: 4; grid-row: 2; }
 }
 
 /* Autocomplete dropdown */
@@ -759,7 +780,7 @@ label.field > span {
         <div class="card-head">
           <div>
             <h2>Šablony</h2>
-            <div class="desc">Hotové sestavy menu. Kliknutím se načtou do sestavení níž, kde je ještě můžete upravit. Datum zůstane dnešní.</div>
+            <div class="desc">Kliknutím se sestava načte do sestavení níž, kde ji ještě upravíte. <strong>Víkend</strong> načte menu z minulého víkendu. Pořadí jídel změníte tak, že jídlo chytíte myší za ⋮⋮ vlevo a přetáhnete.</div>
           </div>
         </div>
         <div class="card-body">
@@ -1763,7 +1784,7 @@ function initApp() {
       state.menuToday = menuSnapshot(publ);
       renderToday();
     }
-    renderLiveStatus(); saveData();
+    renderLiveStatus(); renderTemplates(); saveData();
   };
   document.getElementById('todayNote').oninput  = e => { state.menuToday.note = e.target.value; };
 
@@ -1921,11 +1942,15 @@ function renderTemplates() {
   const box = document.getElementById('tplList');
   if (!box) return;
   const tpls = state.menuTemplates || [];
+  const minuly = posledniVikend(document.getElementById('todayDate').value || todayIso());
   box.innerHTML = tpls.map(t => {
     const pocet = (t.sections || []).reduce((a, s) => a + (s.items || []).length, 0);
+    const meta = (jeVikendova(t) && minuly)
+      ? `načte menu z ${DNY_KDY[isoDen(minuly.date)]} ${fmtKratce(minuly.date)} · ${pocetJidel(minuly.menu)} jídel`
+      : `${pocet} jídel · „${escapeHtml(t.title || 'Menu dne')}"`;
     return `<div class="tpl-chip">
       <button type="button" class="btn btn--primary btn--small" data-load="${escapeAttr(t.id)}">${escapeHtml(t.name)}</button>
-      <span class="tpl-meta">${pocet} jídel · „${escapeHtml(t.title || 'Menu dne')}"</span>
+      <span class="tpl-meta">${meta}</span>
       <button type="button" class="tpl-del" data-del="${escapeAttr(t.id)}" title="Smazat šablonu">✕</button>
     </div>`;
   }).join('');
@@ -1934,21 +1959,67 @@ function renderTemplates() {
   box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteTemplate(b.dataset.del));
 }
 
+/* Víkend se týden od týdne mění jen trochu, takže šablona „Víkend"
+   nenačítá pevnou sestavu, ale poslední publikovaný víkend (sobotu nebo
+   neděli před zvoleným datem). Pevná sestava zůstává jen jako záloha,
+   když ještě žádný víkend publikovaný není. */
+// indexováno podle Date.getDay() (0 = neděle): „menu z neděle", „na neděli"
+const DNY_KDY = ['neděle', 'pondělí', 'úterý', 'středy', 'čtvrtka', 'pátku', 'soboty'];
+const DNY_NA  = ['neděli', 'pondělí', 'úterý', 'středu', 'čtvrtek', 'pátek', 'sobotu'];
+function jeVikendova(t) { return t.id === 'tpl_vikend' || normalize(t.name) === 'vikend'; }
+function isoDen(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).getDay(); }
+function isoPlus(iso, dny) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const x = new Date(y, m - 1, d + dny);
+  return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+}
+function fmtKratce(iso) { const [, m, d] = iso.split('-'); return `${+d}. ${+m}.`; }
+function pocetJidel(m) { return (m.sections || []).reduce((a, s) => a + (s.items || []).length, 0); }
+function posledniVikend(pred) {
+  const menus = state.menus || {};
+  const dny = Object.keys(menus)
+    .filter(d => d < pred && [0, 6].includes(isoDen(d)) && pocetJidel(menus[d]) > 0)
+    .sort();
+  const d = dny[dny.length - 1];
+  return d ? { date: d, menu: menus[d] } : null;
+}
+
 function loadTemplate(id) {
   const t = (state.menuTemplates || []).find(x => x.id === id);
   if (!t) return;
   const maObsah = (state.menuToday.sections || []).some(s =>
     (s.items || []).some(it => it.dishId || (it.name && it.name.trim())));
-  if (maObsah && !confirm(`Načíst šablonu „${t.name}"?\n\nSoučasné rozepsané menu se tím přepíše.`)) return;
 
-  // hluboká kopie, ať úpravy menu nesahaly do šablony
-  state.menuToday.sections = JSON.parse(JSON.stringify(t.sections || []));
-  state.menuToday.title = t.title || 'Menu dne';
-  if (t.note != null) state.menuToday.note = t.note;
+  let den = document.getElementById('todayDate').value || todayIso();
+  let zdroj = null;
+  if (jeVikendova(t)) {
+    // Víkend na všední den bývá omyl — hrozí přepsání menu toho dne.
+    const dt = isoDen(den);
+    if (dt >= 1 && dt <= 5) {
+      const sobota = isoPlus(den, 6 - dt);
+      if (confirm(`Víkendové menu chystáte na ${DNY_NA[dt]} ${fmtCz(den)}.\n\nOK = přepnout datum na sobotu ${fmtCz(sobota)}\nZrušit = ponechat ${DNY_NA[dt]} ${fmtCz(den)}`)) den = sobota;
+    }
+    zdroj = posledniVikend(den);
+  }
+
+  const co = zdroj ? `víkendové menu z ${DNY_KDY[isoDen(zdroj.date)]} ${fmtCz(zdroj.date)}` : `šablonu „${t.name}"`;
+  if (maObsah && !confirm(`Načíst ${co}?\n\nSoučasné rozepsané menu se tím přepíše.`)) return;
+
+  // hluboká kopie, ať úpravy menu nesahaly do šablony ani do publikovaného menu
+  const vzor = zdroj ? zdroj.menu : t;
+  state.menuToday.sections = JSON.parse(JSON.stringify(vzor.sections || []));
+  state.menuToday.title = vzor.title || t.title || 'Menu dne';
+  if (vzor.note != null) state.menuToday.note = vzor.note;
+  state.menuToday.date = den;
+  document.getElementById('todayDate').value = den;
   document.getElementById('todayNote').value = state.menuToday.note || '';
 
   renderBuilder();
-  toast(`Šablona „${t.name}" načtena — zkontrolujte a publikujte`, 'success');
+  renderTemplates();
+  saveData();   // koncept — na web jde až tlačítkem Publikovat
+  toast(zdroj
+    ? `Načteno menu z ${DNY_KDY[isoDen(zdroj.date)]} ${fmtCz(zdroj.date)} na ${DNY_NA[isoDen(den)]} ${fmtCz(den)} — upravte a publikujte`
+    : `Šablona „${t.name}" načtena — zkontrolujte a publikujte`, 'success');
 }
 
 function saveAsTemplate() {
@@ -2035,7 +2106,10 @@ function buildItemEl(si, ii, it) {
 
   const row = document.createElement('div');
   row.className = 'mb-item';
+  row.dataset.si = si;
+  row.dataset.ii = ii;
   row.innerHTML = `
+    <button type="button" class="mb-item-drag" title="Chyťte a přetáhněte jídlo na jiné místo" aria-label="Přesunout jídlo">⋮⋮</button>
     <input class="mb-item-weight" placeholder="200 g" value="${escapeAttr(weight)}">
     <div class="mb-name-wrap">
       <input class="mb-item-name${dish ? ' has-dish' : ''}" placeholder="Začněte psát název jídla…" value="${escapeAttr(display)}" autocomplete="off">
@@ -2079,7 +2153,100 @@ function buildItemEl(si, ii, it) {
   nInp.onkeydown = e => handleAutocompleteKey(e, ac);
 
   row.querySelector('.mb-item-rm').onclick = () => removeItem(si, ii);
+  row.querySelector('.mb-item-drag').addEventListener('pointerdown', e => startItemDrag(e, row));
   return row;
+}
+
+/* ─── Přetahování jídel ───
+   Chycený řádek se při pohybu myši rovnou přesouvá mezi ostatními (i do
+   jiné sekce), po puštění se nové pořadí zapíše do menu. Pointer events,
+   takže to jde myší i prstem. Esc přesun zruší. */
+function startItemDrag(e, row) {
+  if (e.button !== undefined && e.button !== 0) return;
+  e.preventDefault();
+  closeAllAutocompletes();
+  if (document.activeElement) document.activeElement.blur();
+
+  const wrap = document.getElementById('mbWrap');
+  const puvodniSekce = row.closest('.mb-section');
+  row.classList.add('dragging');
+  document.body.classList.add('mb-dragging');
+
+  let lastY = e.clientY, scrollDir = 0, done = false;
+  const scrollTimer = setInterval(() => {
+    if (!scrollDir) return;
+    window.scrollBy(0, scrollDir * 14);
+    moveTo(lastY);
+  }, 16);
+
+  function moveTo(y) {
+    const sections = [...wrap.querySelectorAll('.mb-section')];
+    if (!sections.length) return;
+    // sekce pod kurzorem, jinak ta nejbližší
+    let target = sections.find(sec => {
+      const r = sec.getBoundingClientRect();
+      return y >= r.top && y <= r.bottom;
+    });
+    if (!target) {
+      target = sections.reduce((best, sec) => {
+        const r = sec.getBoundingClientRect();
+        const d = Math.min(Math.abs(y - r.top), Math.abs(y - r.bottom));
+        return !best || d < best.d ? { sec, d } : best;
+      }, null).sec;
+    }
+    sections.forEach(sec => sec.classList.toggle('drop-target', sec === target && sec !== puvodniSekce));
+    const items = target.querySelector('[data-items]');
+    const rows = [...items.querySelectorAll('.mb-item')].filter(r => r !== row);
+    const before = rows.find(r => {
+      const b = r.getBoundingClientRect();
+      return y < b.top + b.height / 2;
+    });
+    if (before) { if (row.nextElementSibling !== before) items.insertBefore(row, before); }
+    else if (rows.length) { if (rows[rows.length - 1].nextElementSibling !== row) rows[rows.length - 1].after(row); }
+    else if (row.parentNode !== items) items.prepend(row);
+  }
+
+  function onMove(ev) {
+    lastY = ev.clientY;
+    const edge = 70;
+    scrollDir = ev.clientY < edge ? -1 : ev.clientY > window.innerHeight - edge ? 1 : 0;
+    moveTo(ev.clientY);
+  }
+  function finish(commit) {
+    if (done) return;
+    done = true;
+    clearInterval(scrollTimer);
+    // posluchače na window — přesun řádku v DOM by zrušil pointer capture
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onCancel);
+    document.removeEventListener('keydown', onKey, true);
+    document.body.classList.remove('mb-dragging');
+    if (commit) commitItemOrder();
+    renderBuilder();
+  }
+  const onUp = () => finish(true);
+  const onCancel = () => finish(false);
+  const onKey = ev => { if (ev.key === 'Escape') { ev.stopPropagation(); finish(false); } };
+
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onCancel);
+  document.addEventListener('keydown', onKey, true);
+}
+
+function commitItemOrder() {
+  const secs = state.menuToday.sections;
+  const puvodni = secs.map(sec => sec.items.slice());
+  const novy = [...document.querySelectorAll('#mbWrap .mb-section')].map(secEl =>
+    [...secEl.querySelectorAll('.mb-item')].map(r => puvodni[+r.dataset.si][+r.dataset.ii]));
+  // pojistka: kdyby DOM neseděl se stavem, nic neměnit — jídlo se nesmí ztratit
+  const pocet = a => a.reduce((n, x) => n + x.length, 0);
+  if (novy.length !== secs.length || pocet(novy) !== pocet(puvodni) || novy.flat().some(x => !x)) return;
+  const zmena = novy.some((items, si) => items.length !== puvodni[si].length || items.some((it, ii) => it !== puvodni[si][ii]));
+  if (!zmena) return;
+  secs.forEach((sec, si) => { sec.items = novy[si]; });
+  saveData();   // koncept — na web jde až tlačítkem Publikovat
 }
 
 function applyDishPick(si, ii, dish, row) {
@@ -2210,10 +2377,14 @@ function publishToday() {
   // úklid: držíme 30 dní zpět, budoucí necháváme
   const hranice = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   Object.keys(state.menus).forEach(d => { if (d < hranice) delete state.menus[d]; });
-  if (snap.date === todayIso()) state.menuToday = snap;   // kompatibilita se starším webem
-  state.menuPublished = snap;
-  if (saveData()) toast('Dnešní menu publikováno ✓', 'success');
+  // menuToday na serveru = kompatibilita se starším webem, musí nést dnešek —
+  // menu nachystané na sobotu ho přepsat nesmí
+  if (snap.date === todayIso()) { state.menuToday = snap; state.menuPublished = snap; }
+  if (saveData()) toast(snap.date === todayIso()
+    ? 'Dnešní menu publikováno ✓'
+    : `Menu na ${DNY_NA[isoDen(snap.date)]} ${fmtCz(snap.date)} publikováno ✓`, 'success');
   renderBuilder();
+  renderTemplates();
 }
 
 /* ════════════════════════════════════════════════════════════
