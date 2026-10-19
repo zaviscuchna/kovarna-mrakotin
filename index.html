@@ -81,6 +81,7 @@ html { scroll-behavior: smooth; font-size: 16px; }
   --text-mid:    #4A3828;
   --text-muted:  #7A6858;
   --white:       #FDFAF6;
+  --ember:       #A3402C;   /* výrazná lišta „dnes zavřeno“ */
   --ease:        cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
   --section-pad: clamp(5rem, 10vw, 9rem);
@@ -140,9 +141,45 @@ input, textarea, select { font-family: inherit; }
 .reveal-d3 { transition-delay: .3s; }
 .reveal-d4 { transition-delay: .4s; }
 
+/* ═══ LIŠTA MIMOŘÁDNOSTÍ (zavřeno, uzavřená společnost…) ═══ */
+.notice-bar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 101;
+  background: var(--teal-deep); color: var(--white);
+  font-size: 14px; line-height: 1.45;
+}
+.notice-bar[hidden] { display: none; }
+.notice-bar.is-today { background: var(--ember); }
+.notice-bar-inner {
+  max-width: 1280px; margin: 0 auto;
+  padding: 10px clamp(1.5rem, 5vw, 4rem);
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  text-align: center;
+}
+.notice-bar-tag {
+  flex: none;
+  font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 999px;
+  background: rgba(253,250,246,.16);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.notice-bar.is-today .notice-bar-tag::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--white);
+  animation: noticePulse 1.8s ease-in-out infinite;
+}
+@keyframes noticePulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .notice-bar.is-today .notice-bar-tag::before { animation: none; } }
+.notice-bar strong { font-weight: 600; }
+.notice-bar a { color: inherit; text-decoration: underline; text-underline-offset: 3px; white-space: nowrap; opacity: .85; }
+.notice-bar a:hover { opacity: 1; }
+@media (max-width: 640px) {
+  .notice-bar { font-size: 13px; }
+  .notice-bar-inner { padding: 9px 16px; gap: 10px; justify-content: flex-start; text-align: left; }
+  .notice-bar-tag { padding: 3px 8px; }
+}
+
 /* ═══ NAV ═════════════════════════════════════════════ */
 nav.main-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  position: fixed; top: var(--notice-h, 0px); left: 0; right: 0; z-index: 100;
   padding: 1rem 0;
   transition: background .4s var(--ease), padding .3s var(--ease), box-shadow .3s var(--ease);
 }
@@ -1031,6 +1068,23 @@ section.padded { padding: var(--section-pad) 0; }
   background: var(--teal-mid); padding: 3px 8px; border-radius: 4px;
 }
 .hours-row.today .hours-day, .hours-row.today .hours-time { color: var(--teal-dark); }
+.hours-special { margin-top: 6px; }
+.hours-special .hours-season-label { color: var(--ember); }
+.hours-special-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+  padding: 11px 0; border-bottom: 1px solid var(--cream-dark);
+  font-size: 14.5px;
+}
+.hours-special-row:last-child { border-bottom: none; }
+.hours-special-when { color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hours-special-what { text-align: right; font-weight: 600; color: var(--text); }
+.hours-special-what small { display: block; font-weight: 400; font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.hours-special-row.is-today {
+  background: #F8E9E4; margin: 0 -14px; padding-left: 14px; padding-right: 14px;
+  border-radius: 8px; border-bottom-color: transparent;
+}
+.hours-special-row.is-today .hours-special-when,
+.hours-special-row.is-today .hours-special-what { color: var(--ember); }
 
 .kontakt-details { display: flex; flex-direction: column; gap: 18px; margin-bottom: 24px; }
 .kontakt-detail { display: flex; gap: 14px; align-items: flex-start; }
@@ -1150,6 +1204,9 @@ footer {
 </style>
 </head>
 <body>
+
+<!-- ═══ LIŠTA MIMOŘÁDNOSTÍ — plní ji renderNotice() z DATA.closures ═══ -->
+<div class="notice-bar" id="noticeBar" role="status" hidden></div>
 
 <!-- ═══ NAV ═══════════════════════════════════════════ -->
 <nav class="main-nav" id="mainNav">
@@ -1642,6 +1699,7 @@ const DEFAULT_DATA = {
     ]
   },
   hoursNote: 'Polední menu 11:00 – 14:00. Zavírací doba je orientační dle naplněnosti restaurace.',
+  closures: [],   // mimořádnosti: zavřeno / uzavřená společnost / jiná doba — zadává klient v adminu
   hero: {
     subtitle: 'Překvapí vás svou útulností interiéru a rodinnou atmosférou uprostřed krásné Vysočiny. Polední menu, krajové speciality, oslavy a catering pro rodiny i firmy.'
   },
@@ -1746,6 +1804,146 @@ function deepMerge(base, over) {
   return out;
 }
 let DATA = loadData();
+
+/* ─── Mimořádnosti: zavřeno, uzavřená společnost, jiná otevírací doba ───
+   Klient je zadává v adminu do DATA.closures:
+   { id, type, from: 'YYYY-MM-DD', to: 'YYYY-MM-DD', time, note, notice, off }
+   off = klient oznámení vypnul — zůstává uložené, na webu se neukazuje.
+   Na webu se ukážou na liště nahoře a u otevírací doby — `notice` dní
+   předem jako upozornění, v ten den výrazně. Po skončení zmizí samy.
+   Stejný kód je v index.html i v adminu (náhled lišty). */
+const CLOSURE_TYPES = {
+  zavreno:    { label: 'Zavřeno',                  icon: '🔒' },
+  spolecnost: { label: 'Uzavřená společnost',      icon: '🥂' },
+  zmena:      { label: 'Jiná otevírací doba',      icon: '🕐' }
+};
+const CLOSURE_NOTICE_DEFAULT = 14;
+const DNY   = ['neděle', 'pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota'];
+const DNY_V = ['v neděli', 'v pondělí', 'v úterý', 've středu', 've čtvrtek', 'v pátek', 'v sobotu'];
+const DNY_DO = ['neděle', 'pondělí', 'úterý', 'středy', 'čtvrtka', 'pátku', 'soboty'];
+
+function parseIso(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+function isoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function addDays(iso, n) { const d = parseIso(iso); d.setDate(d.getDate() + n); return isoDate(d); }
+function daysBetween(a, b) { return Math.round((parseIso(b) - parseIso(a)) / 864e5); }
+function kratkeDatum(iso) { const d = parseIso(iso); return `${d.getDate()}. ${d.getMonth() + 1}.`; }
+function velkym(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+function closureTo(c) { return (c.to && c.to >= c.from) ? c.to : c.from; }
+
+/* Rozsah do seznamu: „so 24. 10.“, „24. – 26. 10.“, „30. 10. – 2. 11.“ */
+function closureRange(c) {
+  const to = closureTo(c);
+  if (to === c.from) return `${DNY[parseIso(c.from).getDay()].slice(0, 2)} ${kratkeDatum(c.from)}`;
+  const a = parseIso(c.from), b = parseIso(to);
+  return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+    ? `${a.getDate()}. – ${kratkeDatum(to)}`
+    : `${kratkeDatum(c.from)} – ${kratkeDatum(to)}`;
+}
+
+/* Co je dnes probíhající nebo v okně upozornění, nejdůležitější první */
+function relevantClosures(list, today) {
+  const vaha = { zavreno: 0, spolecnost: 1, zmena: 2 };
+  return (list || [])
+    .filter(c => c && !c.off && c.from && CLOSURE_TYPES[c.type] && closureTo(c) >= today)
+    .filter(c => c.from <= today || daysBetween(today, c.from) <= (c.notice ?? CLOSURE_NOTICE_DEFAULT))
+    .sort((a, b) => {
+      const aDnes = a.from <= today, bDnes = b.from <= today;
+      if (aDnes !== bDnes) return aDnes ? -1 : 1;
+      if (a.from !== b.from) return a.from < b.from ? -1 : 1;
+      return vaha[a.type] - vaha[b.type];
+    });
+}
+
+/* Kdy se otevírá z běžné otevírací doby, např. „11:00“ */
+function openingTimeFor(iso, hoursList) {
+  const den = parseIso(iso).getDay();
+  const h = (hoursList || []).find(h => Array.isArray(h.match) && h.match.includes(den));
+  const m = h && String(h.time || '').match(/\d{1,2}[:.]\d{2}/);
+  return m ? m[0].replace('.', ':') : '';
+}
+
+/* „Otevíráme opět zítra v 11:00“ — přeskočí navazující zavírací dny */
+function reopenPhrase(c, list, today, hoursList) {
+  let next = addDays(closureTo(c), 1);
+  for (let i = 0; i < 30; i++) {
+    const kryje = (list || []).find(o => !o.off && o.type === 'zavreno' && o.from <= next && closureTo(o) >= next);
+    if (!kryje) break;
+    next = addDays(closureTo(kryje), 1);
+  }
+  const rozdil = daysBetween(today, next);
+  const kdy = rozdil === 1 ? 'zítra' : `${DNY_V[parseIso(next).getDay()]} ${kratkeDatum(next)}`;
+  const cas = openingTimeFor(next, hoursList);
+  return `Otevíráme opět ${kdy}${cas ? ' v ' + cas : ''}.`;
+}
+
+/* Jedna věta pro lištu: { lead, rest } — lead tučně */
+function closureMessage(c, list, today, hoursList) {
+  const to = closureTo(c);
+  const dnes = c.from <= today;
+  const cas = String(c.time || '').trim();
+  const pozn = String(c.note || '').trim();
+  let kdy;
+  if (dnes) kdy = 'Dnes';
+  else if (to !== c.from) kdy = `Ve dnech ${closureRange(c)}`;
+  else if (daysBetween(today, c.from) === 1) kdy = `Zítra (${DNY[parseIso(c.from).getDay()]} ${kratkeDatum(c.from)})`;
+  else kdy = velkym(`${DNY_V[parseIso(c.from).getDay()]} ${kratkeDatum(c.from)}`);
+
+  let lead;
+  if (c.type === 'zavreno') lead = `${kdy} máme zavřeno`;
+  else if (c.type === 'spolecnost') lead = `${kdy}${cas ? ' ' + cas : ''} uzavřená společnost`;
+  else lead = cas ? `${kdy} otevřeno ${cas}` : `${kdy} jiná otevírací doba`;
+
+  // U zavřeno řekne konec věta „Otevíráme opět…“, ostatním připíšeme „až do“
+  const rest = [];
+  if (pozn) rest.push(pozn);
+  if (dnes && to > today && c.type !== 'zavreno') rest.push(`až do ${DNY_DO[parseIso(to).getDay()]} ${kratkeDatum(to)}`);
+  let tail = rest.length ? ` — ${rest.join(', ')}.` : '.';
+  if (c.type === 'zavreno' && dnes) tail += ' ' + reopenPhrase(c, list, today, hoursList);
+  return { lead, rest: tail };
+}
+
+function activeHoursList() {
+  const season = DATA.hoursSeason === 'zimni' ? 'zimni' : 'letni';
+  return (DATA.hoursSeasons && DATA.hoursSeasons[season]) || DATA.hours || [];
+}
+function closedTodayBy() {
+  const dnes = todayIso();
+  return relevantClosures(DATA.closures, dnes).find(c => c.type === 'zavreno' && c.from <= dnes) || null;
+}
+
+/* ─── Render: lišta nahoře ─────────────────────────── */
+function renderNotice() {
+  const bar = document.getElementById('noticeBar');
+  if (!bar) return;
+  const dnes = todayIso();
+  const list = relevantClosures(DATA.closures, dnes);
+  if (!list.length) {
+    bar.hidden = true;
+    document.documentElement.style.removeProperty('--notice-h');
+    return;
+  }
+  const c = list[0];
+  const jeDnes = c.from <= dnes;
+  const m = closureMessage(c, DATA.closures, dnes, activeHoursList());
+  const dalsi = list.length - 1;
+  bar.className = 'notice-bar' + (jeDnes ? ' is-today' : '');
+  bar.innerHTML = `<div class="notice-bar-inner">
+      <span class="notice-bar-tag">${jeDnes ? 'Dnes' : 'Upozornění'}</span>
+      <span><strong>${escapeHtml(m.lead)}</strong>${escapeHtml(m.rest)}
+        ${dalsi ? ` <a href="#kontakt">a ${dalsi} ${dalsi < 5 ? 'další' : 'dalších'} oznámení →</a>` : ''}</span>
+    </div>`;
+  bar.hidden = false;
+  syncNoticeHeight();
+}
+function syncNoticeHeight() {
+  const bar = document.getElementById('noticeBar');
+  if (!bar || bar.hidden) return;
+  document.documentElement.style.setProperty('--notice-h', bar.offsetHeight + 'px');
+}
+window.addEventListener('resize', syncNoticeHeight, { passive: true });
 
 /* ─── Render: hero subtitle + telefony ─────────────── */
 function renderHero() {
@@ -1854,7 +2052,26 @@ function renderTodayMenu() {
     (sec.items || []).some(it => it.dishId || (it.name && String(it.name).trim()))
   );
 
-  // 1) Nový strukturovaný formát ze buildera
+  // 1) Dnes zavřeno (zadané v adminu) — má přednost i před publikovaným menu
+  const zavreno = closedTodayBy();
+  if (zavreno) {
+    const pozn = String(zavreno.note || '').trim();
+    frame.style.background = '';
+    frame.style.minHeight = '';
+    frame.innerHTML = `
+    <div class="denni-menu-empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+      </svg>
+      <h3>Dnes máme zavřeno</h3>
+      ${pozn ? `<p>${escapeHtml(pozn)}</p>` : ''}
+      <p><strong>${escapeHtml(reopenPhrase(zavreno, DATA.closures, todayIso(), activeHoursList()))}</strong></p>
+      <p>Telefon: <a href="tel:+420${phone}">${escapeHtml(phoneStr)}</a></p>
+    </div>`;
+    return;
+  }
+
+  // 2) Nový strukturovaný formát ze buildera
   if (hasContent) {
     frame.style.background = 'transparent';
     frame.style.minHeight = '0';
@@ -1862,7 +2079,7 @@ function renderTodayMenu() {
     return;
   }
 
-  // 2) Legacy: nahraný JPG (rovněž jen pokud je menu aktuální)
+  // 3) Legacy: nahraný JPG (rovněž jen pokud je menu aktuální)
   if (isCurrent && dnesniMenu?.imageUrl) {
     frame.style.background = '';
     frame.style.minHeight = '';
@@ -1874,7 +2091,7 @@ function renderTodayMenu() {
     return;
   }
 
-  // 3) Prázdný stav
+  // 4) Prázdný stav
   frame.style.background = '';
   frame.style.minHeight = '';
   frame.innerHTML = `
@@ -2082,7 +2299,6 @@ function renderPoukazy() {
 
 /* ─── Render: kontakt + hodiny ─────────────────────── */
 function renderContact() {
-  const c = DATA.contact;
   const ht = document.getElementById('hoursTable');
   if (ht) {
     const today = new Date().getDay();
@@ -2090,14 +2306,37 @@ function renderContact() {
     const season = DATA.hoursSeason === 'zimni' ? 'zimni' : 'letni';
     const hoursList = (DATA.hoursSeasons && DATA.hoursSeasons[season]) || DATA.hours || [];
     const seasonLabel = season === 'zimni' ? '❄️ Zimní provoz' : '☀️ Letní provoz';
+    // Když je dnes zavřeno, běžný řádek „dnes“ nezvýrazňujeme — platí řádek v Mimořádně
+    const zavrenoDnes = !!closedTodayBy();
     ht.innerHTML = `<div class="hours-season-label">${seasonLabel}</div>` + hoursList.map(h => {
-      const isToday = Array.isArray(h.match) && h.match.includes(today);
+      const isToday = !zavrenoDnes && Array.isArray(h.match) && h.match.includes(today);
       return `<div class="hours-row${isToday ? ' today' : ''}"><span class="hours-day">${escapeHtml(h.day)}</span><span class="hours-time">${escapeHtml(h.time)}</span></div>`;
-    }).join('');
+    }).join('') + renderClosuresList();
   }
   const hn = document.getElementById('hoursNote');
   if (hn && DATA.hoursNote) hn.textContent = DATA.hoursNote;
+  renderContactDetails();
+}
 
+function renderClosuresList() {
+  const dnes = todayIso();
+  const list = relevantClosures(DATA.closures, dnes);
+  if (!list.length) return '';
+  return `<div class="hours-special"><div class="hours-season-label">Mimořádně</div>` + list.map(c => {
+    const jeDnes = c.from <= dnes;
+    const cas = String(c.time || '').trim();
+    const co = c.type === 'zmena' && cas ? `Otevřeno ${cas}`
+      : CLOSURE_TYPES[c.type].label + (cas && c.type !== 'zavreno' ? ' ' + cas : '');
+    const pozn = String(c.note || '').trim();
+    return `<div class="hours-special-row${jeDnes ? ' is-today' : ''}">
+      <span class="hours-special-when">${jeDnes ? 'Dnes' + (closureTo(c) > dnes ? ' – ' + kratkeDatum(closureTo(c)) : '') : escapeHtml(closureRange(c))}</span>
+      <span class="hours-special-what">${escapeHtml(co)}${pozn ? `<small>${escapeHtml(pozn)}</small>` : ''}</span>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function renderContactDetails() {
+  const c = DATA.contact;
   const kd = document.getElementById('kontaktDetails');
   if (kd) {
     const phoneClean    = (c.phone || '').replace(/\s/g, '');
@@ -2173,6 +2412,7 @@ document.addEventListener('keydown', e => {
 
 /* ─── Run renders + setup ──────────────────────────── */
 function renderAll() {
+  renderNotice();
   renderHero();
   renderTodayMenu();
   renderListek();
@@ -2237,7 +2477,8 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     const target = document.querySelector(href);
     if (target) {
       e.preventDefault();
-      const offset = target.getBoundingClientRect().top + window.scrollY - 70;
+      const lista = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--notice-h')) || 0;
+      const offset = target.getBoundingClientRect().top + window.scrollY - 70 - lista;
       window.scrollTo({ top: offset, behavior: 'smooth' });
     }
   });

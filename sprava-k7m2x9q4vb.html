@@ -30,6 +30,7 @@
   --text-muted: #7A6858;
   --white: #FDFAF6;
   --danger: #c53b3b;
+  --ember: #A3402C;
   --shadow-sm: 0 1px 2px rgba(0,0,0,.04);
   --shadow: 0 4px 24px rgba(44,126,125,.08);
   --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -172,6 +173,60 @@ main.content { padding: 36px 44px; max-width: 1080px; flex: 1 1 auto; min-width:
   background: #FDF3E3; color: #8A5A12; border: 1px solid #F0D9AE;
 }
 .menu-live-status strong { font-weight: 600; }
+
+/* ─── Kdy je zavřeno ─── */
+.cl-types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 18px; }
+.cl-types button {
+  text-align: left; padding: 14px 16px; border-radius: 12px;
+  border: 1.5px solid var(--cream-dark); background: var(--white);
+  transition: border-color .2s, background .2s;
+}
+.cl-types button b { display: block; font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+.cl-types button span { font-size: 12.5px; color: var(--text-muted); line-height: 1.4; }
+.cl-types button:hover { border-color: var(--teal-light); }
+.cl-types button.active { border-color: var(--teal); background: var(--teal-pale); }
+.cl-preview { margin-top: 20px; display: grid; gap: 10px; }
+.cl-preview-label {
+  font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 5px;
+}
+.cl-bar {
+  background: #1F5959; color: var(--white); border-radius: 10px;
+  padding: 11px 16px; font-size: 14px; line-height: 1.45;
+  display: flex; align-items: center; gap: 10px;
+}
+.cl-bar.is-today { background: var(--ember); }
+.cl-bar-tag {
+  flex: none; font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 999px; background: rgba(253,250,246,.16);
+}
+.cl-bar strong { font-weight: 600; }
+.cl-actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+.cl-error { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 18px; }
+.cl-list { display: flex; flex-direction: column; gap: 10px; }
+.cl-item {
+  display: grid; grid-template-columns: 1fr auto; gap: 6px 16px; align-items: center;
+  padding: 14px 16px; border: 1px solid var(--cream-dark); border-radius: 12px; background: var(--white);
+}
+.cl-item-main b { font-size: 15px; font-weight: 600; }
+.cl-item-main .cl-when { color: var(--text-mid); font-size: 14px; margin-left: 6px; }
+.cl-item-main .cl-note { display: block; font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+.cl-chip {
+  display: inline-block; margin-top: 7px; font-size: 11.5px; font-weight: 600;
+  padding: 3px 9px; border-radius: 999px; background: var(--cream); color: var(--text-muted);
+}
+.cl-chip.today { background: #F8E9E4; color: var(--ember); }
+.cl-chip.live  { background: var(--teal-pale); color: var(--teal-dark); }
+.cl-item-btns { display: flex; gap: 6px; }
+.cl-item.past { opacity: .6; }
+.cl-item.off { background: var(--cream); border-style: dashed; }
+.cl-item.off .cl-item-main { opacity: .55; }
+.cl-empty { color: var(--text-muted); font-size: 14px; padding: 6px 0; }
+.cl-past-head { margin-top: 18px; font-size: 11px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted); }
+@media (max-width: 720px) {
+  .cl-types { grid-template-columns: 1fr; }
+  .cl-item { grid-template-columns: 1fr; }
+}
 
 /* ─── Šablony menu ─── */
 .tpl-list { display: flex; gap: 10px; flex-wrap: wrap; }
@@ -707,6 +762,10 @@ body.mb-dragging, body.mb-dragging * { cursor: grabbing !important; user-select:
         <span>Dnešní menu</span>
         <span class="sb-tab-num">DENNĚ</span>
       </button>
+      <button class="sb-tab" data-tab="closures">
+        <span class="sb-tab-icon">🔒</span>
+        <span>Kdy je zavřeno</span>
+      </button>
       <button class="sb-tab" data-tab="listek">
         <span class="sb-tab-icon">▤</span>
         <span>Jídelní lístek</span>
@@ -827,6 +886,69 @@ body.mb-dragging, body.mb-dragging * { cursor: grabbing !important; user-select:
     </section>
 
     <!-- ─── JÍDELNÍ LÍSTEK ─── -->
+    <!-- ─── KDY JE ZAVŘENO ─── -->
+    <section class="tab-panel" data-panel="closures">
+      <div class="page-head">
+        <div>
+          <h1>Kdy je zavřeno</h1>
+          <p>Dovolená, svátek, uzavřená společnost nebo kratší otevírací doba. Na webu se to ukáže na liště úplně nahoře a u otevírací doby — dopředu jako upozornění, v ten den výrazně. Po skončení to zmizí samo.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2 id="clFormTitle">Přidat oznámení</h2>
+            <div class="desc">Vyplňte a klikněte na „Zveřejnit na webu“ — hosté to uvidí hned.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="cl-types" id="clTypes">
+            <button type="button" data-type="zavreno"><b>🔒 Zavřeno</b><span>Dovolená, svátek, inventura — celý den</span></button>
+            <button type="button" data-type="spolecnost"><b>🥂 Uzavřená společnost</b><span>Svatba, oslava, firemní akce</span></button>
+            <button type="button" data-type="zmena"><b>🕐 Jiná otevírací doba</b><span>Třeba na Štědrý den jen do 14:00</span></button>
+          </div>
+          <div class="row row-2">
+            <label class="field"><span>Od (den)</span><input class="input" type="date" id="clFrom"></label>
+            <label class="field"><span>Do (den) <em style="font-weight:400;text-transform:none;letter-spacing:0;">— jen u více dní</em></span><input class="input" type="date" id="clTo"></label>
+          </div>
+          <div class="row row-2" style="margin-top:14px;">
+            <label class="field" id="clTimeWrap"><span id="clTimeLabel">Čas</span><input class="input" id="clTime"></label>
+            <label class="field"><span>Upozornit na webu dopředu</span>
+              <select class="select" id="clNotice">
+                <option value="0">Až v ten den</option>
+                <option value="3">3 dny předem</option>
+                <option value="7">Týden předem</option>
+                <option value="14">2 týdny předem</option>
+                <option value="30">Měsíc předem</option>
+                <option value="60">2 měsíce předem</option>
+              </select>
+            </label>
+          </div>
+          <label class="field" style="margin-top:14px;">
+            <span>Text pro hosty <em style="font-weight:400;text-transform:none;letter-spacing:0;">(nepovinné)</em></span>
+            <input class="input" id="clNote" maxlength="140">
+          </label>
+          <div class="cl-preview" id="clPreview"></div>
+          <div class="cl-error" id="clError"></div>
+          <div class="cl-actions">
+            <button class="btn btn--primary" id="clSave">Zveřejnit na webu</button>
+            <button class="btn btn--ghost" id="clCancel" style="display:none;">Zrušit úpravu</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Naplánováno</h2>
+            <div class="desc">Co je teď na webu nebo se tam teprve objeví. Tlačítkem Vypnout oznámení z webu schováte, aniž byste ho mazali. Proběhlé se po dvou měsících smažou samy.</div>
+          </div>
+        </div>
+        <div class="card-body"><div class="cl-list" id="clList"></div></div>
+      </div>
+    </section>
+
     <section class="tab-panel" data-panel="listek">
       <div class="page-head">
         <div>
@@ -938,7 +1060,7 @@ body.mb-dragging, body.mb-dragging * { cursor: grabbing !important; user-select:
       <div class="page-head">
         <div>
           <h1>Kontakty &amp; otevírací doba</h1>
-          <p>Telefon, email, adresa, FB. Otevírací doba má letní a zimní sadu — na webu se zobrazuje ta, kterou zvolíte přepínačem. Aktuální den se vyznačuje sám.</p>
+          <p>Telefon, email, adresa, FB. Otevírací doba má letní a zimní sadu — na webu se zobrazuje ta, kterou zvolíte přepínačem. Aktuální den se vyznačuje sám. Dovolenou, svátky a uzavřenou společnost zadávejte v záložce <a href="#" onclick="switchTab('closures'); return false;">Kdy je zavřeno</a>.</p>
         </div>
         <button class="btn btn--primary" id="btnSaveContact">Uložit změny</button>
       </div>
@@ -1365,6 +1487,7 @@ const DEFAULT_DATA = {
     ]
   },
   hoursNote: 'Polední menu 11:00 – 14:00. Zavírací doba je orientační dle naplněnosti restaurace.',
+  closures: [],   // mimořádnosti: zavřeno / uzavřená společnost / jiná doba (záložka Kdy je zavřeno)
   hero: {
     subtitle: 'Překvapí vás svou útulností interiéru a rodinnou atmosférou uprostřed krásné Vysočiny. Polední menu, krajové speciality, oslavy a catering pro rodiny i firmy.'
   },
@@ -1741,6 +1864,7 @@ function initApp() {
   renderPoukazyEditor();
   renderGalleryEditor();
   renderContactEditor();
+  renderClosuresEditor();
   renderAllergenChips();
 
   document.getElementById('btnSaveListek').onclick   = saveListek;
@@ -1822,6 +1946,7 @@ function migrateData() {
     };
   }
   if (state.hoursSeason !== 'letni' && state.hoursSeason !== 'zimni') state.hoursSeason = 'letni';
+  if (!Array.isArray(state.closures)) state.closures = [];
   // Pokud někdo dříve spustil dishes-seed.html a state.dishes přesto nemá nic
   if (!state.dishes.length) {
     try {
@@ -1914,6 +2039,15 @@ function renderLiveStatus() {
   if (!den) {
     el.className = 'menu-live-status show hidden-on-web';
     el.innerHTML = '⚠️ <strong>Nastavte datum</strong>, na které menu platí — bez něj ho nelze publikovat.';
+    return;
+  }
+
+  // Zavřeno má na webu přednost před menu — ať to neznamená publikovat naprázdno
+  const zavreno = (state.closures || []).find(c => !c.off && c.type === 'zavreno' && c.from <= den && closureTo(c) >= den);
+  if (zavreno) {
+    el.className = 'menu-live-status show hidden-on-web';
+    el.innerHTML = '🔒 <strong>Na ' + fmtCz(den) + ' máte v záložce „Kdy je zavřeno“ zadáno Zavřeno</strong> — '
+      + 'hosté uvidí „Dnes máme zavřeno“ místo menu. Pokud ten den otevíráte, smažte to tam.';
     return;
   }
 
@@ -3041,6 +3175,273 @@ function saveContact() {
   state.hours = JSON.parse(JSON.stringify(state.hoursSeasons[state.hoursSeason] || []));
   saveData();
   toast('Kontakty uloženy', 'success');
+}
+
+/* ════════════════════════════════════════════════════════════
+   KDY JE ZAVŘENO — mimořádnosti na webu
+   ════════════════════════════════════════════════════════════ */
+/* ─── Mimořádnosti: zavřeno, uzavřená společnost, jiná otevírací doba ───
+   Klient je zadává v adminu do DATA.closures:
+   { id, type, from: 'YYYY-MM-DD', to: 'YYYY-MM-DD', time, note, notice, off }
+   off = klient oznámení vypnul — zůstává uložené, na webu se neukazuje.
+   Na webu se ukážou na liště nahoře a u otevírací doby — `notice` dní
+   předem jako upozornění, v ten den výrazně. Po skončení zmizí samy.
+   Stejný kód je v index.html i v adminu (náhled lišty). */
+const CLOSURE_TYPES = {
+  zavreno:    { label: 'Zavřeno',                  icon: '🔒' },
+  spolecnost: { label: 'Uzavřená společnost',      icon: '🥂' },
+  zmena:      { label: 'Jiná otevírací doba',      icon: '🕐' }
+};
+const CLOSURE_NOTICE_DEFAULT = 14;
+const DNY   = ['neděle', 'pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota'];
+const DNY_V = ['v neděli', 'v pondělí', 'v úterý', 've středu', 've čtvrtek', 'v pátek', 'v sobotu'];
+const DNY_DO = ['neděle', 'pondělí', 'úterý', 'středy', 'čtvrtka', 'pátku', 'soboty'];
+
+function parseIso(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
+function isoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function addDays(iso, n) { const d = parseIso(iso); d.setDate(d.getDate() + n); return isoDate(d); }
+function daysBetween(a, b) { return Math.round((parseIso(b) - parseIso(a)) / 864e5); }
+function kratkeDatum(iso) { const d = parseIso(iso); return `${d.getDate()}. ${d.getMonth() + 1}.`; }
+function velkym(s) { return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+function closureTo(c) { return (c.to && c.to >= c.from) ? c.to : c.from; }
+
+/* Rozsah do seznamu: „so 24. 10.“, „24. – 26. 10.“, „30. 10. – 2. 11.“ */
+function closureRange(c) {
+  const to = closureTo(c);
+  if (to === c.from) return `${DNY[parseIso(c.from).getDay()].slice(0, 2)} ${kratkeDatum(c.from)}`;
+  const a = parseIso(c.from), b = parseIso(to);
+  return a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear()
+    ? `${a.getDate()}. – ${kratkeDatum(to)}`
+    : `${kratkeDatum(c.from)} – ${kratkeDatum(to)}`;
+}
+
+/* Co je dnes probíhající nebo v okně upozornění, nejdůležitější první */
+function relevantClosures(list, today) {
+  const vaha = { zavreno: 0, spolecnost: 1, zmena: 2 };
+  return (list || [])
+    .filter(c => c && !c.off && c.from && CLOSURE_TYPES[c.type] && closureTo(c) >= today)
+    .filter(c => c.from <= today || daysBetween(today, c.from) <= (c.notice ?? CLOSURE_NOTICE_DEFAULT))
+    .sort((a, b) => {
+      const aDnes = a.from <= today, bDnes = b.from <= today;
+      if (aDnes !== bDnes) return aDnes ? -1 : 1;
+      if (a.from !== b.from) return a.from < b.from ? -1 : 1;
+      return vaha[a.type] - vaha[b.type];
+    });
+}
+
+/* Kdy se otevírá z běžné otevírací doby, např. „11:00“ */
+function openingTimeFor(iso, hoursList) {
+  const den = parseIso(iso).getDay();
+  const h = (hoursList || []).find(h => Array.isArray(h.match) && h.match.includes(den));
+  const m = h && String(h.time || '').match(/\d{1,2}[:.]\d{2}/);
+  return m ? m[0].replace('.', ':') : '';
+}
+
+/* „Otevíráme opět zítra v 11:00“ — přeskočí navazující zavírací dny */
+function reopenPhrase(c, list, today, hoursList) {
+  let next = addDays(closureTo(c), 1);
+  for (let i = 0; i < 30; i++) {
+    const kryje = (list || []).find(o => !o.off && o.type === 'zavreno' && o.from <= next && closureTo(o) >= next);
+    if (!kryje) break;
+    next = addDays(closureTo(kryje), 1);
+  }
+  const rozdil = daysBetween(today, next);
+  const kdy = rozdil === 1 ? 'zítra' : `${DNY_V[parseIso(next).getDay()]} ${kratkeDatum(next)}`;
+  const cas = openingTimeFor(next, hoursList);
+  return `Otevíráme opět ${kdy}${cas ? ' v ' + cas : ''}.`;
+}
+
+/* Jedna věta pro lištu: { lead, rest } — lead tučně */
+function closureMessage(c, list, today, hoursList) {
+  const to = closureTo(c);
+  const dnes = c.from <= today;
+  const cas = String(c.time || '').trim();
+  const pozn = String(c.note || '').trim();
+  let kdy;
+  if (dnes) kdy = 'Dnes';
+  else if (to !== c.from) kdy = `Ve dnech ${closureRange(c)}`;
+  else if (daysBetween(today, c.from) === 1) kdy = `Zítra (${DNY[parseIso(c.from).getDay()]} ${kratkeDatum(c.from)})`;
+  else kdy = velkym(`${DNY_V[parseIso(c.from).getDay()]} ${kratkeDatum(c.from)}`);
+
+  let lead;
+  if (c.type === 'zavreno') lead = `${kdy} máme zavřeno`;
+  else if (c.type === 'spolecnost') lead = `${kdy}${cas ? ' ' + cas : ''} uzavřená společnost`;
+  else lead = cas ? `${kdy} otevřeno ${cas}` : `${kdy} jiná otevírací doba`;
+
+  // U zavřeno řekne konec věta „Otevíráme opět…“, ostatním připíšeme „až do“
+  const rest = [];
+  if (pozn) rest.push(pozn);
+  if (dnes && to > today && c.type !== 'zavreno') rest.push(`až do ${DNY_DO[parseIso(to).getDay()]} ${kratkeDatum(to)}`);
+  let tail = rest.length ? ` — ${rest.join(', ')}.` : '.';
+  if (c.type === 'zavreno' && dnes) tail += ' ' + reopenPhrase(c, list, today, hoursList);
+  return { lead, rest: tail };
+}
+
+let clForm = null;     // co se právě vyplňuje ve formuláři
+let clEditId = null;   // id upravované položky, null = nová
+
+function clEmptyForm() {
+  return { type: 'zavreno', from: todayIso(), to: '', time: '', note: '', notice: CLOSURE_NOTICE_DEFAULT };
+}
+function clHoursList() { return state.hoursSeasons?.[state.hoursSeason] || state.hours || []; }
+
+function renderClosuresEditor() {
+  if (!clForm) clForm = clEmptyForm();
+  const f = clForm;
+  document.querySelectorAll('#clTypes [data-type]').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === f.type);
+    b.onclick = () => { clReadForm(); clForm.type = b.dataset.type; renderClosuresEditor(); };
+  });
+  document.getElementById('clFrom').value = f.from || '';
+  document.getElementById('clTo').value = f.to || '';
+  document.getElementById('clTime').value = f.time || '';
+  document.getElementById('clNote').value = f.note || '';
+  document.getElementById('clNotice').value = String(f.notice ?? CLOSURE_NOTICE_DEFAULT);
+
+  // Zavřeno = celý den, čas nemá smysl
+  const casy = {
+    spolecnost: ['Od kdy (nepovinné)', 'např. od 16:00'],
+    zmena:      ['Otevřeno', 'např. 11:00 – 14:00']
+  };
+  document.getElementById('clTimeWrap').style.visibility = f.type === 'zavreno' ? 'hidden' : '';
+  if (casy[f.type]) {
+    document.getElementById('clTimeLabel').textContent = casy[f.type][0];
+    document.getElementById('clTime').placeholder = casy[f.type][1];
+  }
+  document.getElementById('clNote').placeholder = {
+    zavreno: 'např. Dovolená', spolecnost: 'např. Svatba — děkujeme za pochopení', zmena: 'např. Štědrý den'
+  }[f.type];
+
+  document.getElementById('clFormTitle').textContent = clEditId ? 'Upravit oznámení' : 'Přidat oznámení';
+  document.getElementById('clSave').textContent = clEditId ? 'Uložit změny' : 'Zveřejnit na webu';
+  document.getElementById('clCancel').style.display = clEditId ? '' : 'none';
+  ['clFrom', 'clTo', 'clTime', 'clNote', 'clNotice'].forEach(id => {
+    const el = document.getElementById(id);
+    el.oninput = el.onchange = () => { clReadForm(); renderClosurePreview(); };
+  });
+  document.getElementById('clSave').onclick = saveClosure;
+  document.getElementById('clCancel').onclick = () => { clEditId = null; clForm = clEmptyForm(); renderClosuresEditor(); };
+  document.getElementById('clError').textContent = '';
+  renderClosurePreview();
+  renderClosuresList();
+}
+
+function clReadForm() {
+  clForm = {
+    type:   clForm.type,
+    from:   document.getElementById('clFrom').value,
+    to:     document.getElementById('clTo').value,
+    time:   document.getElementById('clTime').value.trim(),
+    note:   document.getElementById('clNote').value.trim(),
+    notice: Number(document.getElementById('clNotice').value)
+  };
+  if (clForm.type === 'zavreno') clForm.time = '';
+}
+
+/* Náhled přesně té lišty, kterou uvidí hosté — dopředu a v ten den */
+function clBarHtml(c, den, jeDnes) {
+  const m = closureMessage(c, [...state.closures.filter(o => o.id !== clEditId), c], den, clHoursList());
+  return `<div class="cl-bar${jeDnes ? ' is-today' : ''}"><span class="cl-bar-tag">${jeDnes ? 'Dnes' : 'Upozornění'}</span>
+    <span><strong>${escapeHtml(m.lead)}</strong>${escapeHtml(m.rest)}</span></div>`;
+}
+function renderClosurePreview() {
+  const box = document.getElementById('clPreview');
+  const c = clForm;
+  if (!c.from) { box.innerHTML = ''; return; }
+  const dnes = todayIso();
+  let html = '';
+  const odKdy = addDays(c.from, -(c.notice || 0));
+  if (c.notice > 0 && c.from > dnes) {
+    const prvni = odKdy > dnes ? odKdy : dnes;
+    html += `<div><div class="cl-preview-label">Na webu od ${escapeHtml(fmtCz(prvni))} — upozornění dopředu</div>${clBarHtml(c, prvni, false)}</div>`;
+  }
+  html += `<div><div class="cl-preview-label">V ten den (${escapeHtml(fmtCz(c.from))})</div>${clBarHtml(c, c.from, true)}</div>`;
+  box.innerHTML = html;
+}
+
+function saveClosure() {
+  clReadForm();
+  const c = clForm, err = document.getElementById('clError');
+  if (!c.from) { err.textContent = 'Vyplňte den, od kdy to platí.'; return; }
+  if (c.to && c.to < c.from) { err.textContent = 'Den „Do“ je dřív než „Od“.'; return; }
+  if ((c.to || c.from) < todayIso()) { err.textContent = 'Tohle datum už proběhlo — na webu by se neukázalo.'; return; }
+  if (c.type === 'zmena' && !c.time) { err.textContent = 'Napište, kdy bude otevřeno (např. 11:00 – 14:00).'; return; }
+  const puvodni = clEditId && state.closures.find(o => o.id === clEditId);
+  const zaznam = { id: clEditId || genId('cl'), ...c, to: c.to && c.to !== c.from ? c.to : '', off: !!(puvodni && puvodni.off) };
+  // Proběhlé starší dvou měsíců prořežeme, ať data nebobtnají
+  const hranice = addDays(todayIso(), -60);
+  state.closures = state.closures.filter(o => o.id !== zaznam.id && closureTo(o) >= hranice);
+  state.closures.push(zaznam);
+  state.closures.sort((a, b) => a.from < b.from ? -1 : a.from > b.from ? 1 : 0);
+  const bylaUprava = !!clEditId;
+  clEditId = null; clForm = clEmptyForm();
+  saveData();
+  renderClosuresEditor();
+  toast(bylaUprava ? 'Uloženo — na webu je to upravené' : 'Zveřejněno na webu', 'success');
+}
+
+function renderClosuresList() {
+  const box = document.getElementById('clList');
+  const dnes = todayIso();
+  const aktualni = state.closures.filter(c => closureTo(c) >= dnes);
+  const probehle = state.closures.filter(c => closureTo(c) < dnes).reverse();
+  const radek = (c, past) => {
+    const cas = String(c.time || '').trim();
+    const pozn = String(c.note || '').trim();
+    let chip = '';
+    if (!past && c.off) {
+      chip = '<span class="cl-chip">⏸ Vypnuto — na webu se neukazuje</span>';
+    } else if (!past) {
+      const odKdy = addDays(c.from, -(c.notice ?? CLOSURE_NOTICE_DEFAULT));
+      if (c.from <= dnes) chip = '<span class="cl-chip today">● Dnes — na webu výrazně nahoře</span>';
+      else if (odKdy <= dnes) chip = '<span class="cl-chip live">Upozornění už je na webu</span>';
+      else chip = `<span class="cl-chip">Na webu se objeví ${escapeHtml(fmtCz(odKdy))}</span>`;
+    }
+    return `<div class="cl-item${past ? ' past' : ''}${!past && c.off ? ' off' : ''}">
+      <div class="cl-item-main">
+        <b>${CLOSURE_TYPES[c.type]?.icon || ''} ${escapeHtml(CLOSURE_TYPES[c.type]?.label || c.type)}</b>
+        <span class="cl-when">${escapeHtml(closureRange(c))}${cas ? ' · ' + escapeHtml(cas) : ''}</span>
+        ${pozn ? `<span class="cl-note">${escapeHtml(pozn)}</span>` : ''}
+        ${chip}
+      </div>
+      <div class="cl-item-btns">
+        ${past ? '' : `<button class="btn ${c.off ? 'btn--primary' : 'btn--ghost'} btn--small" data-toggle="${escapeAttr(c.id)}">${c.off ? 'Zapnout' : 'Vypnout'}</button>
+        <button class="btn btn--ghost btn--small" data-edit="${escapeAttr(c.id)}">Upravit</button>`}
+        <button class="btn btn--danger btn--small" data-del="${escapeAttr(c.id)}">Smazat</button>
+      </div>
+    </div>`;
+  };
+  box.innerHTML = (aktualni.length ? aktualni.map(c => radek(c, false)).join('')
+      : '<div class="cl-empty">Nic naplánováno — restaurace má otevřeno podle běžné otevírací doby.</div>')
+    + (probehle.length ? `<div class="cl-past-head">Proběhlé</div>` + probehle.map(c => radek(c, true)).join('') : '');
+  box.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => {
+    const c = state.closures.find(o => o.id === b.dataset.edit);
+    if (!c) return;
+    clEditId = c.id;
+    clForm = { type: c.type, from: c.from, to: c.to || '', time: c.time || '', note: c.note || '', notice: c.notice ?? CLOSURE_NOTICE_DEFAULT };
+    renderClosuresEditor();
+    document.querySelector('[data-panel="closures"]').scrollIntoView({ behavior: 'smooth' });
+  });
+  box.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => {
+    const c = state.closures.find(o => o.id === b.dataset.toggle);
+    if (!c) return;
+    c.off = !c.off;
+    saveData();
+    renderClosuresEditor();
+    toast(c.off ? 'Vypnuto — z webu zmizelo, zůstává uložené' : 'Zapnuto — na webu se zase ukazuje', 'success');
+  });
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const c = state.closures.find(o => o.id === b.dataset.del);
+    if (!c || !confirm(`Smazat „${CLOSURE_TYPES[c.type]?.label} ${closureRange(c)}“? Z webu hned zmizí.`)) return;
+    state.closures = state.closures.filter(o => o.id !== c.id);
+    if (clEditId === c.id) { clEditId = null; clForm = clEmptyForm(); }
+    saveData();
+    renderClosuresEditor();
+    toast('Smazáno — z webu zmizelo', 'success');
+  });
 }
 
 /* ════════════════════════════════════════════════════════════
