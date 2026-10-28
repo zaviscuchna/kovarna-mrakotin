@@ -2193,6 +2193,7 @@ function nactiZJinehoDne() {
   const den = document.getElementById('todayDate').value || todayIso();
   if (rozepsanoNeco() && !confirm(`Načíst menu z ${DNY_KDY[isoDen(zDne)]} ${fmtCz(zDne)} na ${DNY_NA[isoDen(den)]} ${fmtCz(den)}?\n\nSoučasné rozepsané menu se tím přepíše. Menu z ${fmtCz(zDne)} zůstane beze změny.`)) return;
   nactiSestavu(zdroj, den);
+  document.getElementById('copyFromDay').value = zDne;   // ať výběr neskočí na výchozí den
   toast(`Načteno menu z ${DNY_KDY[isoDen(zDne)]} ${fmtCz(zDne)} na ${DNY_NA[isoDen(den)]} ${fmtCz(den)} — upravte a publikujte`, 'success');
 }
 
