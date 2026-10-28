@@ -247,6 +247,10 @@ main.content { padding: 36px 44px; max-width: 1080px; flex: 1 1 auto; min-width:
 }
 .tpl-chip .tpl-del:hover { color: #b3261e; }
 
+/* ─── Menu z jiného dne ─── */
+.copy-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.copy-row .select { flex: 1 1 260px; max-width: 440px; }
+
 .row { display: grid; gap: 16px; }
 .row-2 { grid-template-columns: 1fr 1fr; }
 .row-3 { grid-template-columns: 1fr 1fr 1fr; }
@@ -832,6 +836,21 @@ body.mb-dragging, body.mb-dragging * { cursor: grabbing !important; user-select:
             <input type="date" class="input" id="todayDate" style="max-width:240px;">
           </label>
           <div id="menuLiveStatus" class="menu-live-status"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h2>Zkopírovat menu z jiného dne</h2>
+            <div class="desc">Vyberte den a klikněte na <strong>Načíst</strong> — jeho menu se nakopíruje do sestavení níž na datum nastavené nahoře. Tam ho upravíte a publikujete. Den, ze kterého kopírujete, zůstane beze změny. Menu se tu drží 30 dní; co chcete mít napořád, uložte jako šablonu.</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="copy-row">
+            <select class="select" id="copyFromDay" aria-label="Den, ze kterého menu zkopírovat"></select>
+            <button type="button" class="btn btn--primary btn--small" id="btnCopyFromDay">Načíst do sestavení</button>
+          </div>
         </div>
       </div>
 
@@ -1884,6 +1903,7 @@ function initApp() {
   document.getElementById('btnPrint').onclick         = printMenu;
   document.getElementById('btnImage').onclick         = downloadMenuImage;
   document.getElementById('btnSaveTpl').onclick        = saveAsTemplate;
+  document.getElementById('btnCopyFromDay').onclick    = nactiZJinehoDne;
 
   /* Sestavení menu měnilo stav jen v paměti — po zavření prohlížeče byla
      rozdělaná práce pryč. Koncept se proto průběžně ukládá. Publikovat to
@@ -2091,6 +2111,9 @@ function renderTemplates() {
 
   box.querySelectorAll('[data-load]').forEach(b => b.onclick = () => loadTemplate(b.dataset.load));
   box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteTemplate(b.dataset.del));
+
+  // Výběr „z jiného dne" závisí na tomtéž co šablony (datum, publikovaná menu)
+  renderKopieDne();
 }
 
 /* Víkend se týden od týdne mění jen trochu, takže šablona „Víkend"
@@ -2118,11 +2141,65 @@ function posledniVikend(pred) {
   return d ? { date: d, menu: menus[d] } : null;
 }
 
+function rozepsanoNeco() {
+  return (state.menuToday.sections || []).some(s =>
+    (s.items || []).some(it => it.dishId || (it.name && it.name.trim())));
+}
+
+/* Načte sestavu (šablonu nebo menu jiného dne) do builderu na zvolený den.
+   Hluboká kopie, ať úpravy menu nesahaly do šablony ani do publikovaného menu. */
+function nactiSestavu(vzor, den, nadpis) {
+  state.menuToday.sections = JSON.parse(JSON.stringify(vzor.sections || []));
+  state.menuToday.title = vzor.title || nadpis || 'Menu dne';
+  if (vzor.note != null) state.menuToday.note = vzor.note;
+  state.menuToday.date = den;
+  document.getElementById('todayDate').value = den;
+  document.getElementById('todayNote').value = state.menuToday.note || '';
+
+  renderBuilder();
+  renderTemplates();
+  saveData();   // koncept — na web jde až tlačítkem Publikovat
+}
+
+/* Restaurace staví menu z toho, co vařila minule. Dřív se to dalo jen
+   přepnutím data na starý den, načtením a přepnutím zpátky — a když se datum
+   zapomnělo vrátit, Publikovat přepsalo ten starý den. Tohle kopíruje rovnou
+   na datum, které je nahoře nastavené. */
+function renderKopieDne() {
+  const sel = document.getElementById('copyFromDay');
+  if (!sel) return;
+  const den = document.getElementById('todayDate').value || todayIso();
+  const menus = state.menus || {};
+  const dny = Object.keys(menus).filter(d => d !== den && pocetJidel(menus[d]) > 0).sort().reverse();
+
+  // Předvybrat poslední den stejného druhu: na všední den poslední „Menu dne",
+  // na víkend poslední víkend nebo sváteční nabídku.
+  const vikendovy = d => [0, 6].includes(isoDen(d)) || /nab[ií]dka/i.test(menus[d].title || '');
+  const chciVikend = [0, 6].includes(isoDen(den));
+  const vychozi = dny.find(d => d < den && vikendovy(d) === chciVikend) || dny.find(d => d < den) || dny[0];
+
+  sel.innerHTML = dny.length
+    ? dny.map(d => `<option value="${d}"${d === vychozi ? ' selected' : ''}>`
+        + `${DNY[isoDen(d)]} ${fmtKratce(d)} — ${escapeHtml(menus[d].title || 'Menu dne')} · ${pocetJidel(menus[d])} jídel</option>`).join('')
+    : '<option value="">Zatím žádné publikované menu</option>';
+  sel.disabled = !dny.length;
+  document.getElementById('btnCopyFromDay').disabled = !dny.length;
+}
+
+function nactiZJinehoDne() {
+  const zDne = document.getElementById('copyFromDay').value;
+  const zdroj = zDne && (state.menus || {})[zDne];
+  if (!zdroj) return;
+  const den = document.getElementById('todayDate').value || todayIso();
+  if (rozepsanoNeco() && !confirm(`Načíst menu z ${DNY_KDY[isoDen(zDne)]} ${fmtCz(zDne)} na ${DNY_NA[isoDen(den)]} ${fmtCz(den)}?\n\nSoučasné rozepsané menu se tím přepíše. Menu z ${fmtCz(zDne)} zůstane beze změny.`)) return;
+  nactiSestavu(zdroj, den);
+  toast(`Načteno menu z ${DNY_KDY[isoDen(zDne)]} ${fmtCz(zDne)} na ${DNY_NA[isoDen(den)]} ${fmtCz(den)} — upravte a publikujte`, 'success');
+}
+
 function loadTemplate(id) {
   const t = (state.menuTemplates || []).find(x => x.id === id);
   if (!t) return;
-  const maObsah = (state.menuToday.sections || []).some(s =>
-    (s.items || []).some(it => it.dishId || (it.name && it.name.trim())));
+  const maObsah = rozepsanoNeco();
 
   let den = document.getElementById('todayDate').value || todayIso();
   let zdroj = null;
@@ -2139,18 +2216,7 @@ function loadTemplate(id) {
   const co = zdroj ? `víkendové menu z ${DNY_KDY[isoDen(zdroj.date)]} ${fmtCz(zdroj.date)}` : `šablonu „${t.name}"`;
   if (maObsah && !confirm(`Načíst ${co}?\n\nSoučasné rozepsané menu se tím přepíše.`)) return;
 
-  // hluboká kopie, ať úpravy menu nesahaly do šablony ani do publikovaného menu
-  const vzor = zdroj ? zdroj.menu : t;
-  state.menuToday.sections = JSON.parse(JSON.stringify(vzor.sections || []));
-  state.menuToday.title = vzor.title || t.title || 'Menu dne';
-  if (vzor.note != null) state.menuToday.note = vzor.note;
-  state.menuToday.date = den;
-  document.getElementById('todayDate').value = den;
-  document.getElementById('todayNote').value = state.menuToday.note || '';
-
-  renderBuilder();
-  renderTemplates();
-  saveData();   // koncept — na web jde až tlačítkem Publikovat
+  nactiSestavu(zdroj ? zdroj.menu : t, den, t.title);
   toast(zdroj
     ? `Načteno menu z ${DNY_KDY[isoDen(zdroj.date)]} ${fmtCz(zdroj.date)} na ${DNY_NA[isoDen(den)]} ${fmtCz(den)} — upravte a publikujte`
     : `Šablona „${t.name}" načtena — zkontrolujte a publikujte`, 'success');
@@ -2512,8 +2578,10 @@ function publishToday() {
   const hranice = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
   Object.keys(state.menus).forEach(d => { if (d < hranice) delete state.menus[d]; });
   // menuToday na serveru = kompatibilita se starším webem, musí nést dnešek —
-  // menu nachystané na sobotu ho přepsat nesmí
-  if (snap.date === todayIso()) { state.menuToday = snap; state.menuPublished = snap; }
+  // menu nachystané na sobotu ho přepsat nesmí.
+  // Vlastní kopie, ne tentýž objekt: builder dál edituje state.menuToday, a kdyby
+  // ho sdílel s publikovaným menu, chystání zítřka by se hned propisovalo na web.
+  if (snap.date === todayIso()) state.menuPublished = menuSnapshot(snap);
   if (saveData()) toast(snap.date === todayIso()
     ? 'Dnešní menu publikováno ✓'
     : `Menu na ${DNY_NA[isoDen(snap.date)]} ${fmtCz(snap.date)} publikováno ✓`, 'success');
